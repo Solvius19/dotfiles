@@ -188,7 +188,7 @@ ShellRoot {
                 Process {
                     id: batPoller
                     running: !screenRoot.isDesktop
-                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1 || echo 'AC'"]
+                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT0/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT0/status 2>/dev/null | head -n1 || echo 'AC'"]
                     stdout: StdioCollector {
                         onStreamFinished: {
                             let lines = this.text.trim().split("\n");
