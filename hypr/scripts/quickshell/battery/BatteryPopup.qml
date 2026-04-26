@@ -163,7 +163,7 @@ Item {
         command: ["bash", "-c", 
             "vmstat 1 2 | tail -1 | awk '{print 100 - $15}' || echo '0'; " +
             "free -m | awk '/Mem:/ {print int($3/$2 * 100)}' || echo '0'; " +
-            "df -h / | awk 'NR==2 {print $5}' | tr -d '%' || echo '0'; " +
+df --total --exclude-type=tmpfs --exclude-type=devtmpfs | awk '/total/ {print int($3/$2 * 100)}'
             "temp=$(sensors 2>/dev/null | grep -m 1 -E 'Package id 0|Tctl|Tdie|edge|temp1' | grep -oE '\\+[0-9]+\\.[0-9]+' | head -n 1 | tr -d '+' | cut -d. -f1); [ -z \"$temp\" ] && temp=$(cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); echo \"${temp:-0}\"; " +
             "powerprofilesctl get 2>/dev/null || echo 'balanced'; " +
             "awk '{print int($1/3600)\"h \"int(($1%3600)/60)\"m\"}' /proc/uptime 2>/dev/null || echo '0h 0m'; " +
