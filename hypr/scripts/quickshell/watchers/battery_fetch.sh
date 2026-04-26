@@ -3,7 +3,7 @@ get_battery_percent() { LC_ALL=C cat /sys/class/power_supply/BAT*/capacity 2>/de
 get_battery_percent() { upower -i /org/freedesktop/UPower/devices/battery_BAT0 2>/dev/null | awk '/^    percentage/ {gsub(/%/,"",$NF); print int($NF)}' || echo "100"; }
 get_battery_icon() {
     local percent=$(get_battery_percent)
-    local status=$(get_battery_status)
+    local status=$(catt /sys/class/power_supply/BATO/status)
     if [ "$status" = "Charging" ] || [ "$status" = "Full" ]; then
         if [ "$percent" -ge 90 ]; then echo "󰂅"
         elif [ "$percent" -ge 80 ]; then echo "󰂋"
