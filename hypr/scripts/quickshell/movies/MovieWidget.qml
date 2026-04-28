@@ -580,7 +580,7 @@ Item {
                 window.foundSourceName = sourceModel.get(idx).name
                 window.checkingState = "found"
                 saveUiState()
-                Quickshell.execDetached(["firefox", url])
+                Quickshell.execDetached(["qutebrowser", url])
             } else {
                 sourceModel.setProperty(idx, "status", "failed")
                 window.sourceCheckStep++
@@ -601,7 +601,7 @@ Item {
             window.foundSourceName = sourceModel.get(idx).name
             window.checkingState = "found"
             saveUiState()
-            Quickshell.execDetached(["firefox", url])
+            Quickshell.execDetached(["qutebrowser", url])
         }
         xhr.send()
     }
@@ -1738,7 +1738,7 @@ Item {
                             Text { anchors.centerIn: parent; text: "Browse Alternative Sites"; font.family: "JetBrains Mono"; font.weight: Font.Bold; font.pixelSize: window.s(13); color: fmhyMouse.containsMouse ? window.crust : window.text }
                             MouseArea {
                                 id: fmhyMouse; anchors.fill: parent; hoverEnabled: true
-                                onClicked: { Quickshell.execDetached(["firefox", "https://fmhy.net/video#streaming-sites"]); window.closeSourceModal() }
+                                onClicked: { Quickshell.execDetached(["qutebrowser", "https://fmhy.net/video#streaming-sites"]); window.closeSourceModal() }
                             }
                         }
                     }
