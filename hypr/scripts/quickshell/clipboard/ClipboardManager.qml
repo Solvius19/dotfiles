@@ -45,8 +45,11 @@ Item {
     property bool previewMode: false
     property bool previewAnimationDone: false
     property string fullTextPreview: ""
-    property int pendingIndex: -1 // Tracks intended keyboard jumps while loading
-    
+    property int pendingIndex: -1
+
+    property real layoutWidth: width
+    property real layoutHeight: height
+
     // Startup state to prevent accordion layout shifts
     property bool isInitialLoad: true
 
@@ -141,7 +144,6 @@ Item {
             }
         }
         
-        // Flawlessly resolve any keyboard navigation that was waiting for data
         if (window.pendingIndex !== -1) {
             if (window.pendingIndex < clipModel.count) {
                 clipList.currentIndex = window.pendingIndex;
@@ -190,13 +192,14 @@ Item {
                 if (window.allClips.length === 0) {
                     window.isInitialLoad = true;
                 }
+
                 focusTimer.restart();
                 introPhaseAnim.restart();
                 window.navDuration = 0; 
                 window.previewMode = false;
                 window.previewAnimationDone = false;
                 window.fullTextPreview = "";
-                window.pendingIndex = -1; // Reset pending state
+                window.pendingIndex = -1;
                 
                 window.currentOffset = 0;
                 window.hasMore = true;
@@ -229,31 +232,18 @@ Item {
 
     Rectangle {
         id: mainBg
-        width: parent.width
+        width: layoutWidth
         
         property real searchHeight: window.s(65)
         property real separatorHeight: 1
         
         property int cols: 3
-        property real cellW: (width - window.s(20)) / cols
         property real cellH: window.s(145) 
         
         property real maxVisibleRows: 4 
-        property real visibleRows: (window.isInitialLoad) ? maxVisibleRows : Math.min(Math.ceil(clipModel.count / cols), maxVisibleRows)
-        property real targetListHeight: (clipModel.count === 0 && !window.isInitialLoad) ? 0 : (visibleRows * cellH)
-        property real targetMargins: (clipModel.count > 0 || window.isInitialLoad) ? window.s(20) : 0
-
-        property real animatedListHeight: targetListHeight
-        property real animatedMargins: targetMargins
-
-        Behavior on animatedListHeight { 
-            enabled: !window.isInitialLoad
-            NumberAnimation { duration: 500; easing.type: Easing.OutExpo } 
-        }
-        Behavior on animatedMargins { 
-            enabled: !window.isInitialLoad
-            NumberAnimation { duration: 500; easing.type: Easing.OutExpo } 
-        }
+        property real visibleRows: maxVisibleRows
+        property real animatedListHeight: visibleRows * cellH
+        property real animatedMargins: window.s(20)
 
         height: searchHeight + separatorHeight + animatedMargins + animatedListHeight
 
@@ -287,390 +277,385 @@ Item {
             Behavior on color { ColorAnimation { duration: 1000 } }
         }
 
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 0
+        Rectangle {
+            id: headerArea
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: mainBg.searchHeight
+            color: "transparent"
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: window.s(15)
+                anchors.leftMargin: window.s(20)
+                anchors.rightMargin: window.s(20)
+                spacing: window.s(15)
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: mainBg.searchHeight
-                color: "transparent"
-                
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: window.s(15)
-                    anchors.leftMargin: window.s(20)
-                    anchors.rightMargin: window.s(20)
-                    spacing: window.s(15)
+                Item {
+                    width: window.s(18)
+                    height: window.s(18)
 
-                    Item {
-                        width: window.s(18)
-                        height: window.s(18)
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰅌"
-                            font.family: "Iosevka Nerd Font"
-                            font.pixelSize: window.s(18)
-                            color: searchInput.activeFocus ? window.mauve : window.subtext0
-                            
-                            opacity: !window.previewMode ? 1 : 0
-                            scale: !window.previewMode ? 1 : 0.5
-                            rotation: !window.previewMode ? 0 : -90
-                            
-                            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
-                            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                            Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                            Behavior on color { ColorAnimation { duration: 100 } }
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰈈"
-                            font.family: "Iosevka Nerd Font"
-                            font.pixelSize: window.s(18)
-                            color: window.mauve
-                            
-                            opacity: window.previewMode ? 1 : 0
-                            scale: window.previewMode ? 1 : 0.5
-                            rotation: window.previewMode ? 0 : 90
-                            
-                            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
-                            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                            Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰅌"
+                        font.family: "Iosevka Nerd Font"
+                        font.pixelSize: window.s(18)
+                        color: searchInput.activeFocus ? window.mauve : window.subtext0
+                        
+                        opacity: !window.previewMode ? 1 : 0
+                        scale: !window.previewMode ? 1 : 0.5
+                        rotation: !window.previewMode ? 0 : -90
+                        
+                        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                        Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                        Behavior on color { ColorAnimation { duration: 100 } }
                     }
 
-                    TextField {
-                        id: searchInput
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        background: Item {} 
-                        color: window.text
-                        font.family: "JetBrains Mono"
-                        font.pixelSize: window.s(16)
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰈈"
+                        font.family: "Iosevka Nerd Font"
+                        font.pixelSize: window.s(18)
+                        color: window.mauve
                         
-                        placeholderText: "Search"
-                        placeholderTextColor: window.subtext0 
+                        opacity: window.previewMode ? 1 : 0
+                        scale: window.previewMode ? 1 : 0.5
+                        rotation: window.previewMode ? 0 : 90
                         
-                        verticalAlignment: TextInput.AlignVCenter
-                        focus: true
+                        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                        Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                    }
+                }
 
-                        onTextChanged: {
-                            if (window.previewMode) { window.previewMode = false; }
-                            window.pendingIndex = -1;
-                            filterClips(text);
-                        }
+                TextField {
+                    id: searchInput
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    background: Item {} 
+                    color: window.text
+                    font.family: "JetBrains Mono"
+                    font.pixelSize: window.s(16)
+                    
+                    placeholderText: "Search"
+                    placeholderTextColor: window.subtext0 
+                    
+                    verticalAlignment: TextInput.AlignVCenter
+                    focus: true
 
-                        Keys.onTabPressed: {
-                            if (clipModel.count > 0) {
-                                window.previewMode = !window.previewMode;
-                                if (window.previewMode) {
-                                    window.updatePreviewText();
-                                }
+                    onTextChanged: {
+                        if (window.previewMode) { window.previewMode = false; }
+                        window.pendingIndex = -1;
+                        filterClips(text);
+                    }
+
+                    Keys.onTabPressed: {
+                        if (clipModel.count > 0) {
+                            window.previewMode = !window.previewMode;
+                            if (window.previewMode) {
+                                window.updatePreviewText();
                             }
-                            event.accepted = true;
                         }
+                        event.accepted = true;
+                    }
 
-                        Keys.onRightPressed: {
-                            window.previewMode = false;
-                            window.navDuration = 250; 
-                            window.pendingIndex = -1;
-                            
-                            let targetIdx = clipList.currentIndex + 1;
-                            if (targetIdx < clipModel.count) { 
-                                clipList.currentIndex = targetIdx; 
-                            } else if (window.hasMore) {
-                                window.pendingIndex = targetIdx; // Wait and jump
-                                window.loadMore();
-                            }
-                            event.accepted = true;
-                        }
+                    Keys.onRightPressed: {
+                        window.previewMode = false;
+                        window.navDuration = 250; 
+                        window.pendingIndex = -1;
                         
-                        Keys.onLeftPressed: {
+                        let targetIdx = clipList.currentIndex + 1;
+                        if (targetIdx < clipModel.count) { 
+                            clipList.currentIndex = targetIdx; 
+                        } else if (window.hasMore) {
+                            window.pendingIndex = targetIdx;
+                            window.loadMore();
+                        }
+                        event.accepted = true;
+                    }
+                    
+                    Keys.onLeftPressed: {
+                        window.previewMode = false;
+                        window.navDuration = 250;
+                        window.pendingIndex = -1;
+                        
+                        if (clipList.currentIndex > 0) { clipList.currentIndex--; }
+                        event.accepted = true;
+                    }
+                    
+                    Keys.onDownPressed: {
+                        if (window.previewMode && textPreviewFlickable.visible) {
+                            textPreviewFlickable.contentY = Math.min(textPreviewFlickable.contentY + window.s(60), Math.max(0, textPreviewFlickable.contentHeight - textPreviewFlickable.height));
+                        } else {
                             window.previewMode = false;
                             window.navDuration = 250;
                             window.pendingIndex = -1;
                             
-                            if (clipList.currentIndex > 0) { clipList.currentIndex--; }
-                            event.accepted = true;
-                        }
-                        
-                        Keys.onDownPressed: {
-                            if (window.previewMode && textPreviewFlickable.visible) {
-                                textPreviewFlickable.contentY = Math.min(textPreviewFlickable.contentY + window.s(60), Math.max(0, textPreviewFlickable.contentHeight - textPreviewFlickable.height));
+                            let targetIdx = clipList.currentIndex + mainBg.cols;
+                            if (targetIdx < clipModel.count) {
+                                clipList.currentIndex = targetIdx;
+                            } else if (window.hasMore) {
+                                window.pendingIndex = targetIdx;
+                                window.loadMore();
                             } else {
-                                window.previewMode = false;
-                                window.navDuration = 250;
-                                window.pendingIndex = -1;
-                                
-                                let targetIdx = clipList.currentIndex + mainBg.cols;
-                                if (targetIdx < clipModel.count) {
-                                    clipList.currentIndex = targetIdx;
-                                } else if (window.hasMore) {
-                                    window.pendingIndex = targetIdx; // Retain column lock while loading
-                                    window.loadMore();
-                                } else {
-                                    clipList.currentIndex = clipModel.count - 1;
-                                }
+                                clipList.currentIndex = clipModel.count - 1;
                             }
-                            event.accepted = true;
                         }
-                        
-                        Keys.onUpPressed: {
-                            if (window.previewMode && textPreviewFlickable.visible) {
-                                textPreviewFlickable.contentY = Math.max(textPreviewFlickable.contentY - window.s(60), 0);
-                            } else {
-                                window.previewMode = false;
-                                window.navDuration = 250;
-                                window.pendingIndex = -1;
-                                
-                                if (clipList.currentIndex - mainBg.cols >= 0) { clipList.currentIndex -= mainBg.cols; }
-                            }
-                            event.accepted = true;
+                        event.accepted = true;
+                    }
+                    
+                    Keys.onUpPressed: {
+                        if (window.previewMode && textPreviewFlickable.visible) {
+                            textPreviewFlickable.contentY = Math.max(textPreviewFlickable.contentY - window.s(60), 0);
+                        } else {
+                            window.previewMode = false;
+                            window.navDuration = 250;
+                            window.pendingIndex = -1;
+                            
+                            if (clipList.currentIndex - mainBg.cols >= 0) { clipList.currentIndex -= mainBg.cols; }
                         }
-                        
-                        Keys.onReturnPressed: {
-                            if (clipList.currentIndex >= 0 && clipList.currentIndex < clipModel.count) {
-                                copyToClipboard(clipModel.get(clipList.currentIndex).id);
-                            }
-                            event.accepted = true;
+                        event.accepted = true;
+                    }
+                    
+                    Keys.onReturnPressed: {
+                        if (clipList.currentIndex >= 0 && clipList.currentIndex < clipModel.count) {
+                            copyToClipboard(clipModel.get(clipList.currentIndex).id);
                         }
-                        
-                        Keys.onEscapePressed: {
-                            if (window.previewMode) {
-                                window.previewMode = false;
-                            } else {
-                                Quickshell.execDetached(["bash", Quickshell.env("HOME") + "/.config/hypr/scripts/qs_manager.sh", "close"]);
-                            }
-                            event.accepted = true;
+                        event.accepted = true;
+                    }
+                    
+                    Keys.onEscapePressed: {
+                        if (window.previewMode) {
+                            window.previewMode = false;
+                        } else {
+                            Quickshell.execDetached(["bash", Quickshell.env("HOME") + "/.config/hypr/scripts/qs_manager.sh", "close"]);
                         }
+                        event.accepted = true;
                     }
                 }
             }
+        }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: mainBg.separatorHeight
-                color: Qt.rgba(window.surface1.r, window.surface1.g, window.surface1.b, 0.5)
+        Rectangle {
+            id: separatorLine
+            anchors.top: headerArea.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: mainBg.separatorHeight
+            color: Qt.rgba(window.surface1.r, window.surface1.g, window.surface1.b, 0.5)
+        }
+
+        GridView {
+            id: clipList
+            anchors.top: separatorLine.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: mainBg.animatedMargins / 2
+            anchors.bottomMargin: mainBg.animatedMargins / 2
+            anchors.leftMargin: window.s(10)
+            anchors.rightMargin: window.s(10)
+            height: mainBg.animatedListHeight
+            
+            clip: true
+            model: clipModel
+
+	    cellWidth: Math.floor((mainBg.width - window.s(20)) / mainBg.cols)
+	    cellHeight: mainBg.cellH
+            
+            currentIndex: 0
+            boundsBehavior: Flickable.StopAtBounds
+
+            highlightFollowsCurrentItem: false
+
+            populate: Transition {
+    		NumberAnimation { property: "opacity"; from: 1; to: 1; duration: 0 }
+	    }
+            
+            add: Transition {
+                id: addTrans
+                SequentialAnimation {
+                    PropertyAction { property: "opacity"; value: 0 }
+                    PropertyAction { property: "scale"; value: 0.8 }
+                    PauseAnimation { duration: 10 }
+                    ParallelAnimation {
+                        NumberAnimation { property: "opacity"; to: 1; duration: 250; easing.type: Easing.OutCubic }
+                        NumberAnimation { property: "scale"; to: 1; duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
+                    }
+                }
+            }
+            
+            displaced: Transition {
+                NumberAnimation { properties: "x,y"; duration: 400; easing.type: Easing.OutExpo }
+            }
+            
+            onContentYChanged: {
+                if (contentY + height >= contentHeight - window.s(80)) {
+                    window.loadMore();
+                }
             }
 
-            GridView {
-                id: clipList
-                Layout.fillWidth: true
-                Layout.preferredHeight: mainBg.animatedListHeight
-                Layout.topMargin: mainBg.animatedMargins / 2
-                Layout.bottomMargin: mainBg.animatedMargins / 2
-                Layout.leftMargin: window.s(10)
-                Layout.rightMargin: window.s(10)
-                
-                clip: true
-                model: clipModel
-                cellWidth: mainBg.cellW
-                cellHeight: mainBg.cellH
-                currentIndex: 0
-                boundsBehavior: Flickable.StopAtBounds
+            Behavior on contentY {
+                enabled: window.navDuration > 0
+                NumberAnimation { duration: 250; easing.type: Easing.OutExpo }
+            }
 
-                highlightFollowsCurrentItem: false
-
-                populate: Transition {
-                    id: popTrans
-                    SequentialAnimation {
-                        PropertyAction { property: "opacity"; value: 0 }
-                        PropertyAction { property: "scale"; value: 0.8 }
-                        PauseAnimation { duration: popTrans.ViewTransition.index * 15 }
-                        ParallelAnimation {
-                            NumberAnimation { property: "opacity"; to: 1; duration: 250; easing.type: Easing.OutCubic }
-                            NumberAnimation { property: "scale"; to: 1; duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-                        }
-                    }
-                }
-                
-                add: Transition {
-                    id: addTrans
-                    SequentialAnimation {
-                        PropertyAction { property: "opacity"; value: 0 }
-                        PropertyAction { property: "scale"; value: 0.8 }
-                        PauseAnimation { duration: 10 }
-                        ParallelAnimation {
-                            NumberAnimation { property: "opacity"; to: 1; duration: 250; easing.type: Easing.OutCubic }
-                            NumberAnimation { property: "scale"; to: 1; duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-                        }
-                    }
-                }
-                
-                displaced: Transition {
-                    NumberAnimation { properties: "x,y"; duration: 400; easing.type: Easing.OutExpo }
-                }
-                
-                onContentYChanged: {
-                    if (contentY + height >= contentHeight - window.s(80)) {
+            onCurrentIndexChanged: {
+                if (currentIndex >= 0 && clipList.model !== null) {
+                    if (currentIndex >= clipModel.count - (mainBg.cols * 2)) {
                         window.loadMore();
                     }
-                }
-
-                Behavior on contentY {
-                    enabled: window.navDuration > 0
-                    NumberAnimation { duration: 250; easing.type: Easing.OutExpo }
-                }
-
-                onCurrentIndexChanged: {
-                    if (currentIndex >= 0 && clipList.model !== null) {
-                        // Proactive loading check to prevent hitting the bounds in the first place
-                        if (currentIndex >= clipModel.count - (mainBg.cols * 2)) {
-                            window.loadMore();
-                        }
-                        
-                        let row = Math.floor(currentIndex / mainBg.cols);
-                        let targetTop = row * mainBg.cellH;
-                        let targetBottom = targetTop + mainBg.cellH;
-
-                        if (window.navDuration > 0) {
-                            if (targetTop < contentY) {
-                                contentY = targetTop;
-                            } else if (targetBottom > contentY + height) {
-                                contentY = targetBottom - height;
-                            }
-                        } else {
-                            positionViewAtIndex(currentIndex, GridView.Contain);
-                        }
-                    }
-                }
-
-                ScrollBar.vertical: ScrollBar {
-                    active: true
-                    policy: ScrollBar.AsNeeded
-                    contentItem: Rectangle {
-                        implicitWidth: window.s(4)
-                        radius: window.s(2)
-                        color: window.surface2
-                        opacity: 0.5
-                    }
-                }
-
-                highlight: Item {
-                    z: 0 
-                    Rectangle {
-                        id: activeHighlight
-                        width: clipList.cellWidth - window.s(10)
-                        height: clipList.cellHeight - window.s(10)
-                        radius: window.s(8)
-                        color: window.mauve
-
-                        property int curIdx: clipList.currentIndex
-                        property real targetX: curIdx === -1 || clipList.model === null ? 0 : (curIdx % mainBg.cols) * clipList.cellWidth
-                        property real targetY: curIdx === -1 || clipList.model === null ? 0 : Math.floor(curIdx / mainBg.cols) * clipList.cellHeight
-
-                        Behavior on x { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
-                        Behavior on y { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
-
-                        x: targetX + window.s(5)
-                        y: targetY + window.s(5)
-                        opacity: clipList.count > 0 && clipList.currentIndex >= 0 && clipList.model !== null ? 1 : 0
-                        Behavior on opacity { NumberAnimation { duration: 300 } }
-                    }
-                }
-
-                delegate: Item {
-                    id: delegateRoot
-                    width: clipList.cellWidth
-                    height: clipList.cellHeight
                     
-                    z: index === clipList.currentIndex ? 50 : 1
+                    let row = Math.floor(currentIndex / mainBg.cols);
+                    let targetTop = row * mainBg.cellH;
+                    let targetBottom = targetTop + mainBg.cellH;
+
+                    if (window.navDuration > 0) {
+                        if (targetTop < contentY) {
+                            contentY = targetTop;
+                        } else if (targetBottom > contentY + height) {
+                            contentY = targetBottom - height;
+                        }
+                    } else {
+                        positionViewAtIndex(currentIndex, GridView.Contain);
+                    }
+                }
+            }
+
+            ScrollBar.vertical: ScrollBar {
+                active: true
+                policy: ScrollBar.AsNeeded
+                contentItem: Rectangle {
+                    implicitWidth: window.s(4)
+                    radius: window.s(2)
+                    color: window.surface2
+                    opacity: 0.5
+                }
+            }
+
+            highlight: Item {
+                z: 0 
+                Rectangle {
+                    id: activeHighlight
+                    width: clipList.cellWidth - window.s(10)
+                    height: clipList.cellHeight - window.s(10)
+                    radius: window.s(8)
+                    color: window.mauve
+
+                    property int curIdx: clipList.currentIndex
+                    property real targetX: curIdx === -1 || clipList.model === null ? 0 : (curIdx % mainBg.cols) * clipList.cellWidth
+                    property real targetY: curIdx === -1 || clipList.model === null ? 0 : Math.floor(curIdx / mainBg.cols) * clipList.cellHeight
+
+                    Behavior on x { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
+                    Behavior on y { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
+
+                    x: targetX + window.s(5)
+                    y: targetY + window.s(5)
+                    opacity: clipList.count > 0 && clipList.currentIndex >= 0 && clipList.model !== null ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
+                }
+            }
+
+            delegate: Item {
+                id: delegateRoot
+                width: clipList.cellWidth
+                height: clipList.cellHeight
+                
+                z: index === clipList.currentIndex ? 50 : 1
+                
+                Rectangle {
+                    id: cardBg
+                    x: window.s(5)
+                    y: window.s(5)
+                    width: parent.width - window.s(10)
+                    height: parent.height - window.s(10)
                     
+                    radius: window.s(8)
+                    
+                    color: ma.containsMouse && index !== clipList.currentIndex ? Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.4) : "transparent"
+                    Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutSine } }
+
                     Rectangle {
-                        id: cardBg
-                        x: window.s(5)
-                        y: window.s(5)
-                        width: parent.width - window.s(10)
-                        height: parent.height - window.s(10)
+                        z: 2
+                        x: window.s(8)
+                        y: window.s(8)
+                        width: window.s(22)
+                        height: window.s(22)
+                        radius: window.s(6)
                         
-                        radius: window.s(8)
+                        color: index === clipList.currentIndex ? window.crust : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.85)
                         
-                        color: ma.containsMouse && index !== clipList.currentIndex ? Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.4) : "transparent"
-                        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutSine } }
-
-                        Rectangle {
-                            z: 2
-                            x: window.s(8)
-                            y: window.s(8)
-                            width: window.s(22)
-                            height: window.s(22)
-                            radius: window.s(6)
-                            
-                            color: index === clipList.currentIndex ? window.crust : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.85)
-                            
-                            Text {
-                                anchors.centerIn: parent
-                                text: (index + 1)
-                                font.family: "JetBrains Mono"
-                                font.pixelSize: window.s(11)
-                                font.weight: Font.Bold
-                                color: index === clipList.currentIndex ? window.mauve : window.text
-                            }
+                        Text {
+                            anchors.centerIn: parent
+                            text: (index + 1)
+                            font.family: "JetBrains Mono"
+                            font.pixelSize: window.s(11)
+                            font.weight: Font.Bold
+                            color: index === clipList.currentIndex ? window.mauve : window.text
                         }
+                    }
 
-                        Rectangle {
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: window.s(4)
+                        visible: model.type === "image"
+                        color: "transparent"
+                        radius: window.s(6)
+                        clip: true
+                        
+                        Image {
                             anchors.fill: parent
-                            anchors.margins: window.s(4)
-                            visible: model.type === "image"
-                            color: "transparent"
-                            radius: window.s(6)
-                            clip: true
+                            source: model.type === "image" ? "file://" + model.content : ""
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true 
+                            cache: true
+                            smooth: true
+                            mipmap: true
+                        }
+                    }
+
+                    Item {
+                        anchors.fill: parent
+                        anchors.margins: window.s(12)
+                        anchors.topMargin: window.s(36)
+                        visible: model.type === "text"
+                        clip: true
+
+                        Text {
+                            anchors.fill: parent
+                            text: model.content
+                            font.family: "JetBrains Mono"
+                            font.pixelSize: window.s(13)
+                            font.weight: index === clipList.currentIndex ? Font.Bold : Font.Medium
+                            color: index === clipList.currentIndex ? window.base : window.text
+                            wrapMode: Text.Wrap
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignTop
+                            maximumLineCount: 4 
                             
-                            Image {
-                                anchors.fill: parent
-                                source: model.type === "image" ? "file://" + model.content : ""
-                                fillMode: Image.PreserveAspectFit
-                                asynchronous: true 
-                                cache: true
-                                smooth: true
-                                mipmap: true
-                            }
+                            property real textShift: index === clipList.currentIndex ? window.s(4) : 0
+                            transform: Translate { x: textShift }
+                            Behavior on textShift { NumberAnimation { duration: 500; easing.type: Easing.OutExpo } }
+                            Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutExpo } }
                         }
+                    }
 
-                        Item {
-                            anchors.fill: parent
-                            anchors.margins: window.s(12)
-                            anchors.topMargin: window.s(36)
-                            visible: model.type === "text"
-                            clip: true
-
-                            Text {
-                                anchors.fill: parent
-                                text: model.content
-                                font.family: "JetBrains Mono"
-                                font.pixelSize: window.s(13)
-                                font.weight: index === clipList.currentIndex ? Font.Bold : Font.Medium
-                                color: index === clipList.currentIndex ? window.base : window.text
-                                wrapMode: Text.Wrap
-                                elide: Text.ElideRight
-                                verticalAlignment: Text.AlignTop
-                                maximumLineCount: 4 
-                                
-                                property real textShift: index === clipList.currentIndex ? window.s(4) : 0
-                                transform: Translate { x: textShift }
-                                Behavior on textShift { NumberAnimation { duration: 500; easing.type: Easing.OutExpo } }
-                                Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutExpo } }
-                            }
-                        }
-
-                        MouseArea {
-                            id: ma
-                            anchors.fill: parent
-                            hoverEnabled: !window.previewMode
-                            enabled: !window.previewMode
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
-                            onClicked: (mouse) => {
-                                window.navDuration = 250;
-                                clipList.currentIndex = index;
-                                
-                                if (mouse.button === Qt.RightButton) {
-                                    window.previewMode = true;
-                                    window.updatePreviewText();
-                                } else {
-                                    copyToClipboard(model.id);
-                                }
+                    MouseArea {
+                        id: ma
+                        anchors.fill: parent
+                        hoverEnabled: !window.previewMode
+                        enabled: !window.previewMode
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: (mouse) => {
+                            window.navDuration = 250;
+                            clipList.currentIndex = index;
+                            
+                            if (mouse.button === Qt.RightButton) {
+                                window.previewMode = true;
+                                window.updatePreviewText();
+                            } else {
+                                copyToClipboard(model.id);
                             }
                         }
                     }

@@ -88,7 +88,7 @@ Item {
     Timer { id: volSyncDelay; interval: 800; onTriggered: window.isDraggingVol = false; triggeredOnStart: true; }
     Timer { id: briSyncDelay; interval: 800; onTriggered: window.isDraggingBri = false; triggeredOnStart: true; }
 
-    readonly property bool isCharging: batStatus === "Charging" || batStatus === "Full"
+    readonly property bool isCharging: batStatus === "Charging"
 
     // Unified hue for Battery
     readonly property color batColorStart: {
@@ -160,8 +160,8 @@ Item {
             onStreamFinished: {
                 let lines = this.text.trim().split("\n");
                 if (lines.length >= 6) {
-                    window.batCapacity = parseInt(lines[0]);
-                    if (window.animCapacity !== window.batCapacity) {
+                    if (window.batCapacity !== parseInt(lines[0])) {
+                        window.batCapacity = parseInt(lines[0]);
                         window.animCapacity = window.batCapacity;
                     }
                     window.batStatus = lines[1];

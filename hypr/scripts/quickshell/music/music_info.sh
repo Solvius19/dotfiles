@@ -20,9 +20,14 @@ if [ "$STATUS" = "Playing" ] || [ "$STATUS" = "Paused" ]; then
     title=$(playerctl metadata xesam:title 2>/dev/null)
     artist=$(playerctl metadata xesam:artist 2>/dev/null)
     
-    # Generate Hash
-    idStr="${title:-unknown}-${artist:-unknown}"
-    trackHash=$(echo "$idStr" | md5sum | cut -d" " -f1)
+    # Generate Hash based on the Image URL itself, not the track title.
+    # This prevents DBus sync lag from poisoning the cache with the wrong image.
+    if [ -n "$rawUrl" ]; then
+        trackHash=$(echo "$rawUrl" | md5sum | cut -d" " -f1)
+    else
+        idStr="${title:-unknown}-${artist:-unknown}"
+        trackHash=$(echo "$idStr" | md5sum | cut -d" " -f1)
+    fi
     
     finalArt="$TMP_DIR/${trackHash}_art.jpg"
     blurPath="$TMP_DIR/${trackHash}_blur.png"
@@ -46,29 +51,33 @@ if [ "$STATUS" = "Playing" ] || [ "$STATUS" = "Paused" ]; then
         if [ ! -f "$lockFile" ] && [ -n "$rawUrl" ]; then
             touch "$lockFile"
             (
+                # Use temporary files to prevent QML from reading incomplete downloads
+                tempArt="$TMP_DIR/${trackHash}_temp_art.jpg"
+                tempBlur="$TMP_DIR/${trackHash}_temp_blur.png"
+
                 if [[ "$rawUrl" == http* ]]; then
-                    curl -s -L --max-time 10 -o "$finalArt" "$rawUrl"
+                    curl -s -L --max-time 10 -o "$tempArt" "$rawUrl"
                 else
                     cleanPath=$(echo "$rawUrl" | sed 's/file:\/\///g')
                     if [ -f "$cleanPath" ]; then
-                        cp "$cleanPath" "$finalArt"
+                        cp "$cleanPath" "$tempArt"
                     else
-                        cp "$PLACEHOLDER" "$finalArt"
+                        cp "$PLACEHOLDER" "$tempArt"
                     fi
                 fi
 
-                if [ ! -s "$finalArt" ]; then
-                    cp "$PLACEHOLDER" "$finalArt"
+                if [ ! -s "$tempArt" ]; then
+                    cp "$PLACEHOLDER" "$tempArt"
                 fi
 
-                isPlaceholder=$(convert "$finalArt" -format "%[hex:u.p{0,0}]" info: 2>/dev/null | cut -c1-6)
+                isPlaceholder=$(convert "$tempArt" -format "%[hex:u.p{0,0}]" info: 2>/dev/null | cut -c1-6)
                 
                 if [[ "$isPlaceholder" == "313244" ]] || [[ -z "$isPlaceholder" ]]; then
-                    cp "$finalArt" "$blurPath"
+                    cp "$tempArt" "$tempBlur"
                 else
-                    convert "$finalArt" -blur 0x20 -brightness-contrast -30x-10 "$blurPath" 2>/dev/null
+                    convert "$tempArt" -blur 0x20 -brightness-contrast -30x-10 "$tempBlur" 2>/dev/null
                     
-                    colors=$(convert "$finalArt" -resize 50x50 -alpha off +dither -quantize RGB -colors 3 -depth 8 -format "%c" histogram:info: 2>/dev/null | grep -E -o '#[0-9A-Fa-f]{6}' | head -n 3 | tr '\n' ' ')
+                    colors=$(convert "$tempArt" -resize 50x50 -alpha off +dither -quantize RGB -colors 3 -depth 8 -format "%c" histogram:info: 2>/dev/null | grep -E -o '#[0-9A-Fa-f]{6}' | head -n 3 | tr '\n' ' ')
                     read -r -a color_array <<< "$colors"
                     
                     c1=${color_array[0]:-#cba6f7}
@@ -84,6 +93,10 @@ if [ "$STATUS" = "Playing" ] || [ "$STATUS" = "Paused" ]; then
                         echo "#cdd6f4" > "$textPath"
                     fi
                 fi
+
+                # Atomic swap: Instantly move completed temp files to their final tracked paths
+                mv "$tempBlur" "$blurPath"
+                mv "$tempArt" "$finalArt"
 
                 rm "$lockFile"
                 (cd "$TMP_DIR" && ls -1t | tail -n +21 | xargs -r rm 2>/dev/null)

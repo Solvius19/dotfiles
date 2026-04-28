@@ -406,6 +406,17 @@ Variants {
                 }
             }
 
+            Timer {
+                id: artRetryTimer
+                interval: 500
+                repeat: true
+                running: barWindow.displayArtUrl && barWindow.displayArtUrl.indexOf("placeholder_blank.png") !== -1
+                onTriggered: {
+                    musicForceRefresh.running = false;
+                    musicForceRefresh.running = true;
+                }
+            }
+
             Process {
                 id: kbPoller; running: true
                 command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/kb_fetch.sh"]
@@ -535,7 +546,7 @@ Variants {
                 interval: 1000; running: true; repeat: true; triggeredOnStart: true
                 onTriggered: {
                     let d = new Date();
-                    barWindow.timeStr = Qt.formatDateTime(d, "h:mm:ss AP");
+                    barWindow.timeStr = Qt.formatDateTime(d, "HH:mm:ss");
                     barWindow.fullDateStr = Qt.formatDateTime(d, "dddd, MMMM dd");
                     if (barWindow.typeInIndex >= barWindow.fullDateStr.length) {
                         barWindow.typeInIndex = barWindow.fullDateStr.length;
@@ -1463,9 +1474,7 @@ Variants {
 
                                 Row { 
                                     id: batLayoutRow
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: barWindow.s(12)
+                                    anchors.centerIn: parent
                                     spacing: barWindow.s(8)
                                     Text { 
                                         anchors.verticalCenter: parent.verticalCenter
@@ -1483,8 +1492,8 @@ Variants {
                                     }
                                 }
                                 MouseArea { id: batMouse; hoverEnabled: true; anchors.fill: parent; onClicked: Quickshell.execDetached(["bash", "-c", "~/.config/hypr/scripts/qs_manager.sh toggle battery"]) }
-                            }
-                        }
+                            }                        
+	         	}
 		    }
 		    Rectangle {
                         id: recButton

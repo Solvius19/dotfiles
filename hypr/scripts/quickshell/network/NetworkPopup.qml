@@ -2215,14 +2215,29 @@ Item {
             Item {
                 id: powerToggleContainer
                 z: 100
-                x: window.currentPower ? parent.width - window.s(30) - window.s(48) : parent.width / 2 - window.s(80)
-                y: window.currentPower ? parent.height - window.s(30) - window.s(48) : (parent.height - window.s(80)) / 2 - window.s(80)
-                width: window.currentPower ? window.s(48) : window.s(160)
+
+                // FIXED: Replaced direct Behavior on x/y with an interpolation value.
+                // This completely removes lag and overshooting when the parent window resizes/morphs.
+                property real pwrMorph: window.currentPower ? 1.0 : 0.0
+                Behavior on pwrMorph {
+                    enabled: window.powerAnimAllowed;
+                    NumberAnimation { duration: 800; easing.type: Easing.InOutQuint }
+                }
+
+                width: window.s(160) + (window.s(48) - window.s(160)) * pwrMorph
                 height: width
 
-                Behavior on x { enabled: window.powerAnimAllowed; NumberAnimation { duration: 800; easing.type: Easing.InOutQuint } }
-                Behavior on y { enabled: window.powerAnimAllowed; NumberAnimation { duration: 800; easing.type: Easing.InOutQuint } }
-                Behavior on width { enabled: window.powerAnimAllowed; NumberAnimation { duration: 800; easing.type: Easing.InOutQuint } }
+                x: {
+                    let startX = (parent.width / 2) - window.s(80);
+                    let endX = parent.width - window.s(30) - window.s(48);
+                    return startX + (endX - startX) * pwrMorph;
+                }
+                
+                y: {
+                    let startY = (parent.height - window.s(80)) / 2 - window.s(80);
+                    let endY = parent.height - window.s(30) - window.s(48);
+                    return startY + (endY - startY) * pwrMorph;
+                }
 
                 MultiEffect {
                     source: powerBtnRect

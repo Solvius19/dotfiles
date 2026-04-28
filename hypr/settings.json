@@ -3,8 +3,8 @@
   "openGuideAtStartup": true,
   "topbarHelpIcon": true,
   "wallpaperDir": "/home/shreekhasnis/Pictures/Wallpapers",
-  "language": "",
-  "kbOptions": "grp:alt_shift_toggle",
+  "language": "us",
+  "kbOptions": "",
   "workspaceCount": 8,
   "keybinds": [
     {
