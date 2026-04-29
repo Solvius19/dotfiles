@@ -65,7 +65,7 @@ Variants {
             }
 
             function getBatteryIcon(percent, state) {
-                var isCharging = state === "charging" || state === "fully-charged";
+                var isCharging = state === UPowerDeviceState.Charging || state === UPowerDeviceState.FullyCharged;
                 if (isCharging) {
                     if (percent >= 90) return "󰂅";
                     else if (percent >= 80) return "󰂋";
@@ -88,14 +88,14 @@ Variants {
             }
 
             function mapState(state) {
-                if (state === "charging") return "Charging";
-                else if (state === "discharging") return "Discharging";
-                else if (state === "fully-charged") return "Full";
-                else if (state === "pending-charge") return "Pending";
+                if (state === UPowerDeviceState.Charging) return "Charging";
+                else if (state === UPowerDeviceState.Discharging) return "Discharging";
+                else if (state === UPowerDeviceState.FullyCharged) return "Full";
+                else if (state === UPowerDeviceState.PendingCharge) return "Pending";
                 else return "Unknown";
             }
 
-            property var battery: !isDesktop && UPower.batteries.length > 0 ? UPower.batteries[0] : null
+            property var battery: !isDesktop ? UPower.displayDevice : null
 
             property bool showHelpIcon: true
             property bool isRecording: false
