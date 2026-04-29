@@ -56,7 +56,7 @@ Item {
     // -------------------------------------------------------------------------
 
     // --- UPOWER (reactive, no polling needed for battery/status/profile) ---
-    readonly property int batCapacity: Math.round(UPower.displayDevice.percentage)
+    readonly property int batCapacity: Math.round(UPower.displayDevice.percentage * 100)
     readonly property var batState: UPower.displayDevice.state
     readonly property var powerProfile: PowerProfiles.profile
     
