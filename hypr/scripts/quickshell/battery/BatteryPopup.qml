@@ -685,137 +685,158 @@ Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.margins: window.s(25)
-                        spacing: window.s(6)
+                        spacing: window.s(12)
                         
                         transform: Translate { y: window.s(-20) * (1.0 - introTop) }
                         opacity: introTop
                         
-                        // Hours Box
+                        // Uptime Box
                         Rectangle {
-                            width: window.s(44); height: window.s(48); radius: window.s(10)
-                            color: window.surface0; border.color: window.surface1; border.width: 1
+                            width: uptimeRow.implicitWidth + window.s(16)
+                            height: window.s(48)
+                            radius: window.s(10)
+                            color: window.surface0
+                            border.color: window.surface1
+                            border.width: 1
                             
-                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientPrimary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
-                            Column {
+                            Row {
+                                id: uptimeRow
                                 anchors.centerIn: parent
-                                Text { 
-                                    text: window.upHours.toString().padStart(2, '0')
-                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                spacing: window.s(6)
+                                
+                                // Hours Box
+                                Rectangle {
+                                    width: window.s(44); height: window.s(48); radius: window.s(10)
+                                    color: "transparent"
+                                    
+                                    Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientPrimary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
+                                    Column {
+                                        anchors.centerIn: parent
+                                        Text { 
+                                            text: window.upHours.toString().padStart(2, '0')
+                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                            color: window.ambientPrimary
+                                            Behavior on color { ColorAnimation { duration: 1000 } }
+                                            anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                        Text { 
+                                            text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                    }
+                                }
+
+                                // Pulsing Colon
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: ":"
+                                    font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
                                     color: window.ambientPrimary
                                     Behavior on color { ColorAnimation { duration: 1000 } }
-                                    anchors.horizontalCenter: parent.horizontalCenter 
+                                    
+                                    opacity: uptimePulse
+                                    property real uptimePulse: 1.0
+                                    SequentialAnimation on uptimePulse {
+                                        loops: Animation.Infinite; running: true
+                                        NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
+                                        NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                                    }
                                 }
-                                Text { 
-                                    text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                }
-                            }
-                        }
 
-                        // Pulsing Colon
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: ":"
-                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
-                            color: window.ambientPrimary
-                            Behavior on color { ColorAnimation { duration: 1000 } }
-                            
-                            opacity: uptimePulse
-                            property real uptimePulse: 1.0
-                            SequentialAnimation on uptimePulse {
-                                loops: Animation.Infinite; running: true
-                                NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
-                                NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
-                            }
-                        }
-
-                        // Mins Box
-                        Rectangle {
-                            width: window.s(44); height: window.s(48); radius: window.s(10)
-                            color: window.surface0; border.color: window.surface1; border.width: 1
-                            
-                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientSecondary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
-                            Column {
-                                anchors.centerIn: parent
-                                Text { 
-                                    text: window.upMins.toString().padStart(2, '0')
-                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                    color: window.ambientSecondary
-                                    Behavior on color { ColorAnimation { duration: 1000 } }
-                                    anchors.horizontalCenter: parent.horizontalCenter 
-                                }
-                                Text { 
-                                    text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                // Mins Box
+                                Rectangle {
+                                    width: window.s(44); height: window.s(48); radius: window.s(10)
+                                    color: "transparent"
+                                    
+                                    Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientSecondary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
+                                    Column {
+                                        anchors.centerIn: parent
+                                        Text { 
+                                            text: window.upMins.toString().padStart(2, '0')
+                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                            color: window.ambientSecondary
+                                            Behavior on color { ColorAnimation { duration: 1000 } }
+                                            anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                        Text { 
+                                            text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        // Colon for time to full
-                        Text {
-                            visible: window.isCharging
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: ":"
-                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
-                            color: window.green
-                        }
-
-                        // Full Hours Box
+                        // Time to full Box
                         Rectangle {
                             visible: window.isCharging
-                            width: window.s(44); height: window.s(48); radius: window.s(10)
-                            color: window.surface0; border.color: window.surface1; border.width: 1
+                            width: fullRow.implicitWidth + window.s(16)
+                            height: window.s(48)
+                            radius: window.s(10)
+                            color: window.surface0
+                            border.color: window.surface1
+                            border.width: 1
                             
                             Rectangle { anchors.fill: parent; radius: window.s(10); color: window.green; opacity: 0.05; }
-                            Column {
-                                anchors.centerIn: parent
-                                Text { 
-                                    text: window.fullHours.toString().padStart(2, '0')
-                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                    color: window.green
-                                    anchors.horizontalCenter: parent.horizontalCenter 
-                                }
-                                Text { 
-                                    text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                }
-                            }
-                        }
-
-                        // Pulsing Colon for time to full
-                        Text {
-                            visible: window.isCharging
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: ":"
-                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
-                            color: window.green
                             
-                            opacity: uptimePulse
-                            SequentialAnimation on opacity {
-                                loops: Animation.Infinite; running: true
-                                NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
-                                NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
-                            }
-                        }
-
-                        // Full Mins Box
-                        Rectangle {
-                            visible: window.isCharging
-                            width: window.s(44); height: window.s(48); radius: window.s(10)
-                            color: window.surface0; border.color: window.surface1; border.width: 1
-                            
-                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.green; opacity: 0.05; }
-                            Column {
+                            Row {
+                                id: fullRow
                                 anchors.centerIn: parent
-                                Text { 
-                                    text: window.fullMins.toString().padStart(2, '0')
-                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                    color: window.green
-                                    anchors.horizontalCenter: parent.horizontalCenter 
+                                spacing: window.s(6)
+                                
+                                // Full Hours Box
+                                Rectangle {
+                                    width: window.s(44); height: window.s(48); radius: window.s(10)
+                                    color: "transparent"
+                                    
+                                    Column {
+                                        anchors.centerIn: parent
+                                        Text { 
+                                            text: window.fullHours.toString().padStart(2, '0')
+                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                            color: window.green
+                                            anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                        Text { 
+                                            text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                    }
                                 }
-                                Text { 
-                                    text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+
+                                // Pulsing Colon for time to full
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: ":"
+                                    font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                    color: window.green
+                                    
+                                    opacity: uptimePulse
+                                    SequentialAnimation on opacity {
+                                        loops: Animation.Infinite; running: true
+                                        NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
+                                        NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                                    }
+                                }
+
+                                // Full Mins Box
+                                Rectangle {
+                                    width: window.s(44); height: window.s(48); radius: window.s(10)
+                                    color: "transparent"
+                                    
+                                    Column {
+                                        anchors.centerIn: parent
+                                        Text { 
+                                            text: window.fullMins.toString().padStart(2, '0')
+                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                            color: window.green
+                                            anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                        Text { 
+                                            text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                        }
+                                    }
                                 }
                             }
                         }
