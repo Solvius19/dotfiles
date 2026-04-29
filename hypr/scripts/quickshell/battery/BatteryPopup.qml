@@ -59,6 +59,10 @@ Item {
     readonly property int batCapacity: Math.round(UPower.displayDevice.percentage * 100)
     readonly property var batState: UPower.displayDevice.state
     readonly property var powerProfile: PowerProfiles.profile
+    readonly property int timeToFull: UPower.displayDevice.timeToFull || 0
+    
+    property int fullHours: Math.floor(timeToFull / 3600)
+    property int fullMins: Math.floor((timeToFull % 3600) / 60)
     
     property int upHours: 0
     property int upMins: 0
