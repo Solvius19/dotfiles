@@ -521,28 +521,6 @@ Variants {
             }
             Process { id: btWaiter; command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/bt_wait.sh"]; onExited: { btPoller.running = false; btPoller.running = true; } }
 
-            Process {
-                id: batteryPoller; running: true
-                command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/battery_fetch.sh"]
-                stdout: StdioCollector {
-                    onStreamFinished: {
-                        let txt = this.text.trim();
-                        if (txt !== "") {
-                            try {
-                                let data = JSON.parse(txt);
-                                let newBat = data.percent.toString() + "%";
-                                if (barWindow.batPercent !== newBat) barWindow.batPercent = newBat;
-                                if (barWindow.batIcon !== data.icon) barWindow.batIcon = data.icon;
-                                if (barWindow.batStatus !== data.status) barWindow.batStatus = data.status;
-                            } catch(e) {}
-                        }
-                        batteryWaiter.running = false;
-                        batteryWaiter.running = true;
-                    }
-                }
-            }
-            Process { id: batteryWaiter; command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/battery_wait.sh"]; onExited: { batteryPoller.running = false; batteryPoller.running = true; } }
-
 
             Process {
                 id: weatherPoller
