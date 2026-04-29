@@ -59,7 +59,7 @@ Item {
     readonly property int batCapacity: Math.round(UPower.displayDevice.percentage * 100)
     readonly property var batState: UPower.displayDevice.state
     readonly property var powerProfile: PowerProfiles.profile
-    readonly property int timeToFull: UPower.displayDevice.timeToFull || 0
+    property int timeToFull: 0
     
     property int fullHours: Math.floor(timeToFull / 3600)
     property int fullMins: Math.floor((timeToFull % 3600) / 60)
@@ -191,6 +191,22 @@ Item {
     Timer {
         interval: 1500; running: true; repeat: true; triggeredOnStart: true;
         onTriggered: sysPoller.running = true
+    }
+
+    Process {
+        id: timeToFullPoller
+        running: window.isCharging
+        command: ["bash", "-c", "upower -i /org/freedesktop/UPower/devices/battery_BAT0 2>/dev/null | awk '/time to full/ {print $4}' | sed 's/seconds//' | sed 's/minutes/*60/' | sed 's/hours/*3600/' | bc 2>/dev/null || echo '0'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                window.timeToFull = parseInt(this.text.trim()) || 0;
+            }
+        }
+    }
+
+    Timer {
+        interval: 60000; running: window.isCharging; repeat: true; triggeredOnStart: true;
+        onTriggered: timeToFullPoller.running = true
     }
 
     property real globalOrbitAngle: 0
