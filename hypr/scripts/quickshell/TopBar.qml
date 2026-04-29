@@ -267,9 +267,9 @@ Variants {
             property string volIcon: "󰕾"
             property bool isMuted: false
             
-            property string batPercent: "100%"
-            property string batIcon: "󰁹"
-            property string batStatus: "Unknown"
+            property string batPercent: battery ? battery.capacity + "%" : "100%"
+            property string batIcon: battery ? getBatteryIcon(battery.capacity, battery.state) : "󰁹"
+            property string batStatus: battery ? mapState(battery.state) : "Unknown"
             
             property string kbLayout: "us"
             
