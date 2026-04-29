@@ -64,6 +64,39 @@ Variants {
                 id: mocha
             }
 
+            function getBatteryIcon(percent, state) {
+                var isCharging = state === "charging" || state === "fully-charged";
+                if (isCharging) {
+                    if (percent >= 90) return "󰂅";
+                    else if (percent >= 80) return "󰂋";
+                    else if (percent >= 60) return "󰂊";
+                    else if (percent >= 40) return "󰢞";
+                    else if (percent >= 20) return "󰂆";
+                    else return "󰢜";
+                } else {
+                    if (percent >= 90) return "󰁹";
+                    else if (percent >= 80) return "󰂂";
+                    else if (percent >= 70) return "󰂁";
+                    else if (percent >= 60) return "󰂀";
+                    else if (percent >= 50) return "󰁿";
+                    else if (percent >= 40) return "󰁾";
+                    else if (percent >= 30) return "󰁽";
+                    else if (percent >= 20) return "󰁼";
+                    else if (percent >= 10) return "󰁻";
+                    else return "󰁺";
+                }
+            }
+
+            function mapState(state) {
+                if (state === "charging") return "Charging";
+                else if (state === "discharging") return "Discharging";
+                else if (state === "fully-charged") return "Full";
+                else if (state === "pending-charge") return "Pending";
+                else return "Unknown";
+            }
+
+            property var battery: !isDesktop && UPower.batteries.length > 0 ? UPower.batteries[0] : null
+
             property bool showHelpIcon: true
             property bool isRecording: false
             
