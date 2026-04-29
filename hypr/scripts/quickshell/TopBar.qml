@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
+import Quickshell.Services.UPower
 
 Variants {
     model: Quickshell.screens
