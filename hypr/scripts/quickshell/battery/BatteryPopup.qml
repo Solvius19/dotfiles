@@ -4,6 +4,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
 import "../"
 
 Item {
@@ -53,9 +54,11 @@ Item {
     // -------------------------------------------------------------------------
     // STATE & POLLING
     // -------------------------------------------------------------------------
-    property int batCapacity: 0
-    property string batStatus: "Unknown"
-    property string powerProfile: "balanced"
+
+    // --- UPOWER (reactive, no polling needed for battery/status/profile) ---
+    readonly property int batCapacity: Math.round(UPower.displayDevice.percentage)
+    readonly property var batState: UPower.displayDevice.state
+    readonly property var powerProfile: PowerProfiles.profile
     
     property int upHours: 0
     property int upMins: 0
@@ -88,7 +91,7 @@ Item {
     Timer { id: volSyncDelay; interval: 800; onTriggered: window.isDraggingVol = false; triggeredOnStart: true; }
     Timer { id: briSyncDelay; interval: 800; onTriggered: window.isDraggingBri = false; triggeredOnStart: true; }
 
-    readonly property bool isCharging: batStatus === "Charging"
+    readonly property bool isCharging: batState === UPowerDeviceState.Charging || batState === UPowerDeviceState.PendingCharge
 
     // Unified hue for Battery
     readonly property color batColorStart: {
@@ -101,8 +104,8 @@ Item {
 
     // Unified hue for Performance Profile
     readonly property color profileStart: {
-        if (powerProfile === "performance") return window.red;
-        if (powerProfile === "power-saver") return window.green;
+        if (powerProfile === PowerProfile.Performance) return window.red;
+        if (powerProfile === PowerProfile.PowerSaver) return window.green;
         return window.blue;
     }
     readonly property color profileEnd: Qt.lighter(profileStart, 1.15)
@@ -145,12 +148,14 @@ Item {
         }
     }
 
+    // Sync animCapacity whenever UPower updates the battery percentage
+    onBatCapacityChanged: {
+        animCapacity = batCapacity;
+    }
+
     Process {
         id: sysPoller
-        command: ["bash", "-c", 
-            "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 || echo '0'; " +
-            "cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1 || echo 'Unknown'; " +
-            "powerprofilesctl get 2>/dev/null || echo 'balanced'; " +
+        command: ["bash", "-c",
             "awk '{print int($1/3600)\"h \"int(($1%3600)/60)\"m\"}' /proc/uptime 2>/dev/null || echo '0h 0m'; " +
             "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100), ($3==\"[MUTED]\"?\"off\":\"on\")}' || echo '0 on'; " +
             "brightnessctl -m 2>/dev/null | awk -F, '{print substr($4, 1, length($4)-1)}' || echo '0'"
@@ -159,28 +164,21 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 let lines = this.text.trim().split("\n");
-                if (lines.length >= 6) {
-                    if (window.batCapacity !== parseInt(lines[0])) {
-                        window.batCapacity = parseInt(lines[0]);
-                        window.animCapacity = window.batCapacity;
-                    }
-                    window.batStatus = lines[1];
-                    window.powerProfile = lines[2];
-                    
-                    let upParts = lines[3].split("h ");
+                if (lines.length >= 3) {
+                    let upParts = lines[0].split("h ");
                     if (upParts.length === 2) {
                         window.upHours = parseInt(upParts[0]) || 0;
                         window.upMins = parseInt(upParts[1].replace("m", "")) || 0;
                     }
 
                     if (!window.isDraggingVol) {
-                        let volParts = (lines[4] || "0 on").trim().split(" ");
+                        let volParts = (lines[1] || "0 on").trim().split(" ");
                         window.sysVolume = parseInt(volParts[0]) || 0;
                         window.sysMuted = (volParts[1] === "off");
                     }
-                    
+
                     if (!window.isDraggingBri) {
-                        window.sysBrightness = parseInt(lines[5]) || 0;
+                        window.sysBrightness = parseInt(lines[2]) || 0;
                     }
                 }
             }
@@ -1015,7 +1013,7 @@ Item {
                                             ? Qt.tint(window.green, Qt.rgba(1, 1, 1, parent.textPulse * 0.4)) 
                                             : (centralCore.isDangerState ? Qt.tint(window.red, Qt.rgba(1, 1, 1, parent.textPulse * 0.3)) : window.subtext0)
                                             
-                                    text: window.batStatus.toUpperCase()
+                                    text: UPowerDeviceState.toString(window.batState).toUpperCase()
                                     Behavior on color { ColorAnimation { duration: 300 } }
                                 }
                             }
@@ -1422,8 +1420,8 @@ Item {
                                 y: window.s(1)
                                 radius: window.s(10)
                                 x: {
-                                    if (window.powerProfile === "performance") return window.s(1);
-                                    if (window.powerProfile === "balanced") return width + window.s(1);
+                                    if (window.powerProfile === PowerProfile.Performance) return window.s(1);
+                                    if (window.powerProfile === PowerProfile.Balanced) return width + window.s(1);
                                     return (width * 2) + window.s(1);
                                 }
                                 
@@ -1441,13 +1439,14 @@ Item {
                                 spacing: 0
                                 
                                 Repeater {
-                                    model: ListModel {
-                                        ListElement { name: "performance"; icon: "󰓅"; label: "Perform" } 
-                                        ListElement { name: "balanced"; icon: "󰗑"; label: "Balance" }   
-                                        ListElement { name: "power-saver"; icon: "󰌪"; label: "Saver" } 
-                                    }
+                                    model: [
+                                        { profile: PowerProfile.Performance, icon: "󰓅", label: "Perform" },
+                                        { profile: PowerProfile.Balanced,    icon: "󰗑", label: "Balance" },
+                                        { profile: PowerProfile.PowerSaver,  icon: "󰌪", label: "Saver"   }
+                                    ]
                                     
                                     delegate: Item {
+                                        required property var modelData
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         
@@ -1456,14 +1455,14 @@ Item {
                                             spacing: window.s(8)
                                             Text {
                                                 font.family: "Iosevka Nerd Font"; font.pixelSize: window.s(18)
-                                                color: window.powerProfile === name ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
-                                                text: icon
+                                                color: window.powerProfile === modelData.profile ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
+                                                text: modelData.icon
                                                 Behavior on color { ColorAnimation { duration: 200 } }
                                             }
                                             Text {
                                                 font.family: "JetBrains Mono"; font.weight: Font.Black; font.pixelSize: window.s(13)
-                                                color: window.powerProfile === name ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
-                                                text: label
+                                                color: window.powerProfile === modelData.profile ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
+                                                text: modelData.label
                                                 Behavior on color { ColorAnimation { duration: 200 } }
                                             }
                                         }
@@ -1471,7 +1470,7 @@ Item {
                                         MouseArea {
                                             id: profileMa
                                             anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                            onClicked: { Quickshell.execDetached(["powerprofilesctl", "set", name]); sysPoller.running = true; }
+                                            onClicked: { PowerProfiles.profile = modelData.profile; }
                                         }
                                     }
                                 }
