@@ -734,6 +734,75 @@ Item {
                                 }
                             }
                         }
+
+                        // Colon for time to full
+                        Text {
+                            visible: window.isCharging
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ":"
+                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
+                            color: window.green
+                        }
+
+                        // Full Hours Box
+                        Rectangle {
+                            visible: window.isCharging
+                            width: window.s(44); height: window.s(48); radius: window.s(10)
+                            color: window.surface0; border.color: window.surface1; border.width: 1
+                            
+                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.green; opacity: 0.05; }
+                            Column {
+                                anchors.centerIn: parent
+                                Text { 
+                                    text: window.fullHours.toString().padStart(2, '0')
+                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                    color: window.green
+                                    anchors.horizontalCenter: parent.horizontalCenter 
+                                }
+                                Text { 
+                                    text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                }
+                            }
+                        }
+
+                        // Pulsing Colon for time to full
+                        Text {
+                            visible: window.isCharging
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ":"
+                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
+                            color: window.green
+                            
+                            opacity: uptimePulse
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite; running: true
+                                NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
+                                NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                            }
+                        }
+
+                        // Full Mins Box
+                        Rectangle {
+                            visible: window.isCharging
+                            width: window.s(44); height: window.s(48); radius: window.s(10)
+                            color: window.surface0; border.color: window.surface1; border.width: 1
+                            
+                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.green; opacity: 0.05; }
+                            Column {
+                                anchors.centerIn: parent
+                                Text { 
+                                    text: window.fullMins.toString().padStart(2, '0')
+                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                    color: window.green
+                                    anchors.horizontalCenter: parent.horizontalCenter 
+                                }
+                                Text { 
+                                    text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
+                                }
+                            }
+                        }
                     }
 
                     // Expanding top-right logout icon
