@@ -4,6 +4,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
 import "../"
 
 Item {
