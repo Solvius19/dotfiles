@@ -963,6 +963,9 @@ Item {
                     ColumnLayout {
                         spacing: Math.round(10 * window.sf)
                         Layout.fillWidth: true
+                        visible: window.appleCalendarUrlEditorVisible || window.appleCalendarUrl !== ""
+                        opacity: window.appleCalendarUrlEditorVisible || window.appleCalendarUrl !== "" ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
 
                         RowLayout {
                             Layout.fillWidth: true
