@@ -988,24 +988,12 @@ Item {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: window.s(8)
                                     
-                                    Rectangle {
-                                        width: window.s(50)
-                                        height: window.s(50)
-                                        radius: width / 2
+                                    Text {
+                                        font.family: "Iosevka Nerd Font"
+                                        font.pixelSize: window.s(28)
                                         color: window.batColorStart
-                                        border.width: 1
-                                        border.color: Qt.rgba(window.surface1.r, window.surface1.g, window.surface1.b, 0.2)
-                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: window.isCharging ? "󰂄" : (window.batCapacity > 20 ? "󰁹" : "󰂃")
                                         Behavior on color { ColorAnimation { duration: 400 } }
-                                        Behavior on border.color { ColorAnimation { duration: 400 } }
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            font.family: "Iosevka Nerd Font"
-                                            font.pixelSize: window.s(24)
-                                            color: window.base
-                                            text: window.isCharging ? "󰂄" : (window.batCapacity > 20 ? "󰁹" : "󰂃")
-                                        }
                                     }
                                     
                                     Text {
@@ -1013,7 +1001,7 @@ Item {
                                         font.weight: Font.Black
                                         font.pixelSize: window.s(54)
                                         color: window.text
-                                        text: window.batteryDevice ? Math.round(window.batteryDevice.percentage * 100) + "%" : Math.round(window.animCapacity) + "%" 
+                                        text: Math.round(window.animCapacity) + "%" 
                                     }
                                 }
 
