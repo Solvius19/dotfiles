@@ -99,8 +99,6 @@ Item {
     }
     readonly property color batColorEnd: Qt.lighter(batColorStart, 1.15)
 
-    property var batteryDevice: UPower.displayDevice
-
     // Unified hue for Performance Profile
     readonly property color profileStart: {
         if (powerProfile === "performance") return window.red;
