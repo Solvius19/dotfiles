@@ -988,12 +988,24 @@ Item {
                                     Layout.alignment: Qt.AlignHCenter
                                     spacing: window.s(8)
                                     
-                                    Text {
-                                        font.family: "Iosevka Nerd Font"
-                                        font.pixelSize: window.s(28)
+                                    Rectangle {
+                                        width: window.s(50)
+                                        height: window.s(50)
+                                        radius: width / 2
                                         color: window.batColorStart
-                                        text: window.isCharging ? "󰂄" : (window.batCapacity > 20 ? "󰁹" : "󰂃")
+                                        border.width: 1
+                                        border.color: Qt.rgba(window.surface1.r, window.surface1.g, window.surface1.b, 0.2)
+                                        anchors.verticalCenter: parent.verticalCenter
                                         Behavior on color { ColorAnimation { duration: 400 } }
+                                        Behavior on border.color { ColorAnimation { duration: 400 } }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            font.family: "Iosevka Nerd Font"
+                                            font.pixelSize: window.s(24)
+                                            color: window.base
+                                            text: window.isCharging ? "󰂄" : (window.batCapacity > 20 ? "󰁹" : "󰂃")
+                                        }
                                     }
                                     
                                     Text {
