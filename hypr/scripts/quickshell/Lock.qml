@@ -103,7 +103,7 @@ ShellRoot {
 
                 property string staticWallpaperPath: "file:///tmp/lock_bg.png"
 
-                property int batPct: Math.round(UPower.displayDevice.percentage * 100)
+                property string batPct: Math.round(UPower.displayDevice.percentage * 100).toString()
                 property string batStatus: "AC"
                 property string currentUser: "User"
                 property string faceIconPath: ""
@@ -728,21 +728,21 @@ ShellRoot {
                             
                             property color dynamicBatColor: {
                                 if (screenRoot.batStatus === "Charging") return root.green;
-                                let pct = screenRoot.batPct;
+                                let pct = parseInt(screenRoot.batPct);
                                 if (pct >= 60) return root.green;
                                 if (pct >= 25) return root.peach;
                                 return root.red;
                             }
 
                             Text { 
-                                text: screenRoot.batStatus === "Charging" ? "󰂄" : (screenRoot.batPct < 20 ? "󰂃" : "󰁹")
+                                text: screenRoot.batStatus === "Charging" ? "󰂄" : (parseInt(screenRoot.batPct) < 20 ? "󰂃" : "󰁹")
                                 font.family: "Iosevka Nerd Font"
                                 font.pixelSize: 20 * screenRoot.sc
                                 color: batLayoutRow.dynamicBatColor
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             Text { 
-                                text: (Math.round(UPower.displayDevice.percentage * 100)).toString() + "%"
+                                text: parseInt(screenRoot.batPct) + "%"
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: 14 * screenRoot.sc
                                 font.weight: Font.Black
