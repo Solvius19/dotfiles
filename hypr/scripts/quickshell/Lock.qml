@@ -8,7 +8,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
-import "../" // Assuming scaler.qml is available here
+import "../" 
 
 ShellRoot {
     id: root
@@ -30,10 +30,9 @@ ShellRoot {
     readonly property color blue: _theme.blue
     readonly property color green: _theme.green
 
-    // Persistent Settings
-    Settings {
+    // Session Settings (Changed from Settings to QtObject to fix the Qt 6.11 initialization error)
+    QtObject {
         id: lockSettings
-        category: "QuickshellLockscreen"
         property bool hidePassword: false
         property int revealDuration: 300
     }
@@ -46,11 +45,19 @@ ShellRoot {
         property string statusText: "Locked"
     }
 
+    // Timer to safely decouple PAM execution from the main QML event loop
+    Timer {
+        id: pamActionTimer
+        interval: 50
+        onTriggered: pam.start()
+    }
+
     // System Authentication hook
     PamContext {
         id: pam
         
-        Component.onCompleted: pam.start()
+        // Defer start until after component initialization to prevent memory segfaults
+        Component.onCompleted: pamActionTimer.start()
 
         onCompleted: (result) => {
             lockUI.authenticating = false;
@@ -60,7 +67,8 @@ ShellRoot {
             } else {
                 lockUI.failed = true;
                 lockUI.statusText = "Access Denied";
-                pam.start();
+                // Defer the restart to prevent a recursive crash loop
+                pamActionTimer.start();
             }
         }
     }
@@ -188,7 +196,7 @@ ShellRoot {
                 Process {
                     id: batPoller
                     running: !screenRoot.isDesktop
-                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT0/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT0/status 2>/dev/null | head -n1 || echo 'AC'"]
+                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1 || echo 'AC'"]
                     stdout: StdioCollector {
                         onStreamFinished: {
                             let lines = this.text.trim().split("\n");

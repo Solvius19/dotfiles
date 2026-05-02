@@ -74,6 +74,7 @@ Item {
             if (card.tab === 0) root.tab0Loaded = true;
             else if (card.tab === 1) root.tab1Loaded = true;
             else if (card.tab === 2) root.tab2Loaded = true;
+            else if (card.tab === 3) root.tab3Loaded = true;
         } else {
             jumpToSettingTimer.targetTab = 2;
             jumpToSettingTimer.targetBox = item.kbIndex;
@@ -123,9 +124,10 @@ Item {
     }
 
     function maxHighlightForTab(tab) {
-        if (tab === 0) return 7;
+        if (tab === 0) return 6;
         if (tab === 1) return 3;
         if (tab === 2) return dynamicKeybindsModel.count - 1;
+        if (tab === 3) return dynamicStartupModel.count - 1;
         return -1;
     }
 
@@ -143,8 +145,6 @@ Item {
             } else if (root.highlightedBox === 5) {
                 if (generalLoader.item) generalLoader.item.focusWpDirInput();
             } else if (root.highlightedBox === 6) {
-            } else if (root.highlightedBox === 7) {
-                Quickshell.execDetached(["bash", "-c", "~/.config/hypr/scripts/qs_manager.sh toggle updater"]);
             }
         } else if (root.currentTab === 1) {
             if (root.highlightedBox === 0) {
@@ -158,6 +158,11 @@ Item {
             if (root.highlightedBox >= 0 && root.highlightedBox < dynamicKeybindsModel.count) {
                 let isEd = dynamicKeybindsModel.get(root.highlightedBox).isEditing;
                 dynamicKeybindsModel.setProperty(root.highlightedBox, "isEditing", !isEd);
+            }
+        } else if (root.currentTab === 3) {
+            if (root.highlightedBox >= 0 && root.highlightedBox < dynamicStartupModel.count) {
+                let isEd = dynamicStartupModel.get(root.highlightedBox).isEditing;
+                dynamicStartupModel.setProperty(root.highlightedBox, "isEditing", !isEd);
             }
         }
     }
@@ -177,7 +182,6 @@ Item {
             else if (box === 3 || box === 4) approxY = root.s(240);
             else if (box === 5) approxY = root.s(400);
             else if (box === 6) approxY = root.s(520);
-            else if (box === 7) approxY = root.s(640);
             generalLoader.item.scrollToBox(approxY);
         } else if (root.currentTab === 1 && weatherLoader.item) {
             let approxY = 0;
@@ -189,23 +193,28 @@ Item {
         } else if (root.currentTab === 2 && keybindLoader.item) {
             let approxY = box * root.s(56) + root.s(120);
             keybindLoader.item.scrollToBox(approxY);
+        } else if (root.currentTab === 3 && startupLoader.item) {
+            let approxY = box * root.s(56) + root.s(20);
+            startupLoader.item.scrollToBox(approxY);
         }
     }
 
     property int currentTab: 0
-    property var tabNames: ["General", "Weather", "Keybinds"]
-    property var tabIcons: ["󰒓", "󰖐", "󰌌"]
-    property var tabColors: ["teal", "blue", "peach"]
+    property var tabNames: ["General", "Weather", "Keybinds", "Startup"]
+    property var tabIcons: ["󰒓", "󰖐", "󰌌", "󰐥"]
+    property var tabColors: ["teal", "blue", "peach", "green"]
 
     property bool tab0Loaded: false
     property bool tab1Loaded: false
     property bool tab2Loaded: false
+    property bool tab3Loaded: false
 
     onCurrentTabChanged: {
         root.clearHighlight();
         if (currentTab === 0) root.tab0Loaded = true;
         else if (currentTab === 1) root.tab1Loaded = true;
         else if (currentTab === 2) root.tab2Loaded = true;
+        else if (currentTab === 3) root.tab3Loaded = true;
     }
 
     Keys.onEscapePressed: {
@@ -229,12 +238,12 @@ Item {
 
     Keys.onTabPressed: (event) => {
         if (root.isSearchMode) return;
-        root.currentTab = (root.currentTab + 1) % 3;
+        root.currentTab = (root.currentTab + 1) % 4;
         event.accepted = true;
     }
     Keys.onBacktabPressed: (event) => {
         if (root.isSearchMode) return;
-        root.currentTab = (root.currentTab + 2) % 3;
+        root.currentTab = (root.currentTab + 3) % 4;
         event.accepted = true;
     }
 
@@ -358,6 +367,7 @@ Item {
         if (root.currentTab === 0) Config.saveAppSettings();
         else if (root.currentTab === 1) Config.saveWeatherConfig();
         else if (root.currentTab === 2) root.saveAllKeybinds();
+        else if (root.currentTab === 3) root.saveAllStartup();
         event.accepted = true;
     }
 
@@ -507,12 +517,49 @@ Item {
         return "VALID";
     }
 
+    ListModel { id: dynamicStartupModel }
+
+    Connections {
+        target: Config
+        function onStartupLoaded() {
+            dynamicStartupModel.clear();
+            for (let s of Config.startupData) {
+                dynamicStartupModel.append({ command: s.command || "", isEditing: false });
+            }
+        }
+        function onStartupDataChanged() {
+            dynamicStartupModel.clear();
+            for (let s of Config.startupData) {
+                dynamicStartupModel.append({ command: s.command || "", isEditing: false });
+            }
+        }
+    }
+
+    function saveAllStartup() {
+        let startupArray = [];
+        for (let i = 0; i < dynamicStartupModel.count; i++) {
+            let cmd = dynamicStartupModel.get(i).command.trim();
+            if (cmd.length > 0) startupArray.push({ command: cmd });
+        }
+        Config.saveAllStartup(startupArray);
+    }
+
     Timer {
         id: scrollTimer
         interval: 50
         onTriggered: {
             if (keybindLoader.item) {
                 keybindLoader.item.scrollToBottom();
+            }
+        }
+    }
+
+    Timer {
+        id: startupScrollTimer
+        interval: 50
+        onTriggered: {
+            if (startupLoader.item) {
+                startupLoader.item.scrollToBottom();
             }
         }
     }
@@ -544,6 +591,9 @@ Item {
                 } else if (targetTab === 2 && keybindLoader.item) {
                     approxY = targetBox * (root.s(56)) + root.s(120);
                     keybindLoader.item.scrollTo(approxY);
+                } else if (targetTab === 3 && startupLoader.item) {
+                    approxY = targetBox * (root.s(56)) + root.s(20);
+                    startupLoader.item.scrollTo(approxY);
                 }
 
                 targetBox = -1;
@@ -838,14 +888,16 @@ Item {
     }
 
     property real introContent: 0.0
-    Component.onCompleted: { 
+    Component.onCompleted: {
         root.tab0Loaded = true;
-        startupSequence.start(); 
-        
-        // Since Config is a Singleton, it might ALREADY be loaded before 
-        // this window is created. If so, pull the data manually.
+        startupSequence.start();
         if (Config.dataReady && dynamicKeybindsModel.count === 0) {
             dynamicKeybindsModel.append(Config.keybindsData);
+        }
+        if (Config.dataReady && dynamicStartupModel.count === 0) {
+            for (let s of Config.startupData) {
+                dynamicStartupModel.append({ command: s.command || "", isEditing: false });
+            }
         }
     }
 
@@ -1661,53 +1713,6 @@ Item {
                                         }
                                         MouseArea { id: wsPlusMa; anchors.fill: parent; hoverEnabled: true; onClicked: Config.workspaceCount = Math.min(10, Config.workspaceCount + 1) }
                                     }
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Box 7: Updates ─────────────────────────────────────
-                    Rectangle {
-                        id: box7
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: updateRow.implicitHeight + root.s(28)
-                        radius: root.s(12)
-
-                        property bool isActive: root.highlightedBox === 7
-                        color: isActive ? root.green : root.surface0
-                        border.color: isActive ? root.green : root.surface1
-                        border.width: 1
-                        Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
-
-                        MouseArea { anchors.fill: parent; onClicked: root.highlightedBox = 7; z: -1 }
-
-                        RowLayout {
-                            id: updateRow
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.margins: root.s(16)
-                            spacing: root.s(14)
-
-                            Item {
-                                Layout.preferredWidth: root.s(22); Layout.alignment: Qt.AlignVCenter
-                                Text {
-                                    anchors.centerIn: parent; text: "󰚰"; font.family: "Iosevka Nerd Font"; font.pixelSize: root.s(18)
-                                    color: box7.isActive ? root.base : root.green
-                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
-                                }
-                            }
-                            ColumnLayout {
-                                Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: root.s(3)
-                                Text {
-                                    text: "Updates"; font.family: "Inter"; font.weight: Font.Bold; font.pixelSize: root.s(14)
-                                    color: box7.isActive ? root.base : root.text; Layout.fillWidth: true
-                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
-                                }
-                                Text {
-                                    text: "Check for and install updates"; font.family: "Inter"; font.pixelSize: root.s(11)
-                                    color: box7.isActive ? Qt.alpha(root.base, 0.75) : Qt.alpha(root.subtext0, 0.7); Layout.fillWidth: true
-                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
                                 }
                             }
                         }
@@ -2751,7 +2756,7 @@ Item {
                     // Save button
                     Rectangle {
                         id: headerSaveBtn
-                        visible: root.currentTab !== 2 && !root.isSearchMode
+                        visible: root.currentTab !== 2 && root.currentTab !== 3 && !root.isSearchMode
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
 
@@ -2807,7 +2812,7 @@ Item {
                     // Add button
                     Rectangle {
                         id: headerAddBtn
-                        visible: root.currentTab === 2 && !root.isSearchMode
+                        visible: (root.currentTab === 2 || root.currentTab === 3) && !root.isSearchMode
                         opacity: visible ? 1.0 : 0.0
                         Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
 
@@ -2855,8 +2860,13 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                dynamicKeybindsModel.append({ type: "bind", mods: "", key: "", dispatcher: "exec", command: "", isEditing: true });
-                                scrollTimer.start();
+                                if (root.currentTab === 2) {
+                                    dynamicKeybindsModel.append({ type: "bind", mods: "", key: "", dispatcher: "exec", command: "", isEditing: true });
+                                    scrollTimer.start();
+                                } else if (root.currentTab === 3) {
+                                    dynamicStartupModel.append({ command: "", isEditing: true });
+                                    startupScrollTimer.start();
+                                }
                             }
                         }
                     }
@@ -2933,100 +2943,163 @@ Item {
 
                 // ── Tab bar ───────────────────────────────────────────────────
                 Item {
+                    id: tabBarContainer
                     Layout.fillWidth: true
                     Layout.preferredHeight: root.s(38)
                     visible: !root.isSearchMode
                     opacity: root.isSearchMode ? 0.0 : 1.0
                     Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                    clip: true
 
-                    // Background track
                     Rectangle {
                         anchors.fill: parent; radius: root.s(10)
                         color: root.surface0; border.color: root.surface1; border.width: 1
                     }
 
-                    // Morphing pill
-                    Rectangle {
-                        id: tabHighlightPill
-                        y: root.s(3)
-                        height: root.s(32)
-                        radius: root.s(8)
-
-                        property color c0: root.teal
-                        property color c1: root.blue
-                        property color c2: root.peach
-                        property color targetColor: {
-                            if (root.currentTab === 0) return c0;
-                            if (root.currentTab === 1) return c1;
-                            return c2;
-                        }
-                        color: targetColor
-                        Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutExpo } }
-
-                        property int prevTab: 0
-                        property int curTab: root.currentTab
-
-                        onCurTabChanged: {
-                            if (curTab > prevTab) {
-                                tabRightAnim.duration = 200; tabLeftAnim.duration = 350;
-                            } else if (curTab < prevTab) {
-                                tabLeftAnim.duration = 200; tabRightAnim.duration = 350;
-                            }
-                            prevTab = curTab;
-                        }
-
-                        property real tabW: (parent.width - root.s(6)) / 3
-                        property real targetLeft: root.s(3) + curTab * tabW
-                        property real targetRight: targetLeft + tabW
-
-                        property real actualLeft: targetLeft
-                        property real actualRight: targetRight
-
-                        Behavior on actualLeft { NumberAnimation { id: tabLeftAnim; duration: 250; easing.type: Easing.OutExpo } }
-                        Behavior on actualRight { NumberAnimation { id: tabRightAnim; duration: 250; easing.type: Easing.OutExpo } }
-
-                        x: actualLeft
-                        width: actualRight - actualLeft
-                    }
-
-                    Row {
+                    Flickable {
+                        id: tabBarFlickable
                         anchors.fill: parent
-                        anchors.margins: root.s(3)
-                        spacing: 0
+                        clip: false
+                        // UX Update: Elastic boundaries feel much more native and premium than stopping dead
+                        boundsBehavior: Flickable.DragAndOvershootBounds
 
-                        Repeater {
-                            model: root.tabNames.length
-                            Item {
-                                width: (parent.width) / 3
-                                height: parent.height
+                        // Reduced the divisor to 2.5 so tabs don't squash and it's clear the list scrolls
+                        property real tabItemW: (tabBarContainer.width - root.s(6)) / (root.tabNames.length <= 3 ? 3 : 2.5)
+                        contentWidth: root.tabNames.length * tabItemW + root.s(6)
+                        contentHeight: height
 
-                                property bool isActive: root.currentTab === index
+                        // Graceful smooth scrolling animation for tab selection
+                        NumberAnimation {
+                            id: smoothScrollAnim
+                            target: tabBarFlickable
+                            property: "contentX"
+                            duration: 350
+                            easing.type: Easing.OutCubic
+                        }
 
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    spacing: root.s(7)
-                                    Text {
-                                        text: root.tabIcons[index]
-                                        font.family: "Iosevka Nerd Font"
-                                        font.pixelSize: root.s(14)
-                                        color: isActive ? root.base : root.subtext0
-                                        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutExpo } }
-                                    }
-                                    Text {
-                                        text: root.tabNames[index]
-                                        font.family: "JetBrains Mono"
-                                        font.weight: isActive ? Font.Bold : Font.Medium
-                                        font.pixelSize: root.s(12)
-                                        color: isActive ? root.base : root.subtext0
-                                        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutExpo } }
-                                    }
+                        // UX Update: Dedicated animation for hardware scroll wheels to prevent jagged jumps
+                        NumberAnimation {
+                            id: wheelScrollAnim
+                            target: tabBarFlickable
+                            property: "contentX"
+                            duration: 150
+                            easing.type: Easing.OutSine
+                        }
+
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                            onWheel: (event) => {
+                                smoothScrollAnim.stop(); // Cancel auto-scroll if user takes control
+                                
+                                // UX Update: Support both vertical mice and horizontal trackpads seamlessly
+                                let delta = Math.abs(event.angleDelta.x) > 0 ? event.angleDelta.x : event.angleDelta.y;
+                                
+                                // Calculate the target with clamping so the animation doesn't break boundaries
+                                let targetX = Math.max(0, Math.min(
+                                    tabBarFlickable.contentWidth - tabBarFlickable.width,
+                                    tabBarFlickable.contentX - delta * 0.75 // 0.75 smooths out hyper-fast scroll wheels
+                                ));
+                                
+                                wheelScrollAnim.to = targetX;
+                                wheelScrollAnim.start();
+                                
+                                event.accepted = true;
+                            }
+                        }
+
+                        Rectangle {
+                            id: tabHighlightPill
+                            y: root.s(3)
+                            height: root.s(32)
+                            radius: root.s(8)
+
+                            property color c0: root.teal
+                            property color c1: root.blue
+                            property color c2: root.peach
+                            property color c3: root.green
+                            property color targetColor: {
+                                if (root.currentTab === 0) return c0;
+                                if (root.currentTab === 1) return c1;
+                                if (root.currentTab === 2) return c2;
+                                return c3;
+                            }
+                            color: targetColor
+                            Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutExpo } }
+
+                            property int prevTab: 0
+                            property int curTab: root.currentTab
+
+                            onCurTabChanged: {
+                                if (curTab > prevTab) {
+                                    tabRightAnim.duration = 200; tabLeftAnim.duration = 350;
+                                } else if (curTab < prevTab) {
+                                    tabLeftAnim.duration = 200; tabRightAnim.duration = 350;
                                 }
+                                prevTab = curTab;
+                                
+                                // Graceful scrolling: center the newly selected tab
+                                let tLeft = root.s(3) + curTab * tabBarFlickable.tabItemW;
+                                let targetX = tLeft - (tabBarFlickable.width / 2) + (tabBarFlickable.tabItemW / 2);
+                                
+                                // Clamp bounds
+                                targetX = Math.max(0, Math.min(tabBarFlickable.contentWidth - tabBarFlickable.width, targetX));
+                                
+                                smoothScrollAnim.to = targetX;
+                                smoothScrollAnim.start();
+                            }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: { root.currentTab = index; root.clearHighlight(); }
+                            property real targetLeft: root.s(3) + curTab * tabBarFlickable.tabItemW
+                            property real targetRight: targetLeft + tabBarFlickable.tabItemW
+
+                            property real actualLeft: targetLeft
+                            property real actualRight: targetRight
+
+                            Behavior on actualLeft { NumberAnimation { id: tabLeftAnim; duration: 250; easing.type: Easing.OutExpo } }
+                            Behavior on actualRight { NumberAnimation { id: tabRightAnim; duration: 250; easing.type: Easing.OutExpo } }
+
+                            x: actualLeft
+                            width: actualRight - actualLeft
+                        }
+
+                        Row {
+                            x: root.s(3)
+                            spacing: 0
+                            height: tabBarFlickable.height
+
+                            Repeater {
+                                model: root.tabNames.length
+                                Item {
+                                    width: tabBarFlickable.tabItemW
+                                    height: parent.height
+
+                                    property bool isActive: root.currentTab === index
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: root.s(7)
+                                        Text {
+                                            text: root.tabIcons[index]
+                                            font.family: "Iosevka Nerd Font"
+                                            font.pixelSize: root.s(14)
+                                            color: isActive ? root.base : root.subtext0
+                                            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                                        }
+                                        Text {
+                                            text: root.tabNames[index]
+                                            font.family: "JetBrains Mono"
+                                            font.weight: isActive ? Font.Bold : Font.Medium
+                                            font.pixelSize: root.s(12)
+                                            color: isActive ? root.base : root.subtext0
+                                            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: { root.currentTab = index; root.clearHighlight(); }
+                                    }
                                 }
                             }
                         }
@@ -3322,6 +3395,231 @@ Item {
                         function scrollToBottom() { if (item) item.scrollToBottom(); }
                         function scrollTo(y) { if (item) item.scrollTo(y); }
                         function scrollToBox(y) { if (item) item.scrollToBox(y); }
+                    }
+
+                    Loader {
+                        id: startupLoader
+                        anchors.fill: parent
+                        active: root.tab3Loaded && Config.dataReady
+                        sourceComponent: startupTabComponent
+                        visible: root.currentTab === 3 && !root.isSearchMode
+                        opacity: visible ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                        function scrollToBottom() { if (item) item.scrollToBottom(); }
+                        function scrollTo(y) { if (item) item.scrollTo(y); }
+                        function scrollToBox(y) { if (item) item.scrollToBox(y); }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: startupTabComponent
+        Item {
+            id: startupTabRoot
+
+            function scrollTo(y) {
+                let maxY = Math.max(0, startupFlickable.contentHeight - startupFlickable.height);
+                startupFlickable.contentY = Math.max(0, Math.min(y - root.s(40), maxY > 0 ? maxY : y));
+            }
+            function scrollToBottom() {
+                startupFlickable.contentY = Math.max(0, startupColLayout.implicitHeight - startupFlickable.height + root.s(100));
+            }
+            function scrollToBox(approxItemY) {
+                let viewH = startupFlickable.height;
+                let itemTop = approxItemY;
+                let itemBottom = approxItemY + root.s(56);
+                let curY = startupFlickable.contentY;
+                let maxY = Math.max(0, startupFlickable.contentHeight - viewH);
+                if (itemTop < curY + root.s(10)) {
+                    startupFlickable.contentY = Math.max(0, itemTop - root.s(20));
+                } else if (itemBottom > curY + viewH - root.s(10)) {
+                    startupFlickable.contentY = Math.min(maxY, itemBottom - viewH + root.s(20));
+                }
+            }
+
+            Flickable {
+                id: startupFlickable
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: startupColLayout.implicitHeight + root.s(100)
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+
+                MouseArea { anchors.fill: parent; onClicked: root.clearHighlight(); z: -1 }
+
+                ColumnLayout {
+                    id: startupColLayout
+                    width: parent.width
+                    spacing: root.s(8)
+
+                    ListView {
+                        id: startupListView
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: implicitHeight
+                        implicitHeight: dynamicStartupModel.count * root.s(56) + root.s(20)
+                        model: dynamicStartupModel
+                        interactive: false
+                        cacheBuffer: root.s(2000)
+                        spacing: root.s(8)
+
+                        delegate: Rectangle {
+                            id: startupRowRect
+                            property int outerIndex: index
+                            property bool isJumpHighlighted: root.highlightedBox === outerIndex
+
+                            property bool layoutReady: false
+                            Component.onCompleted: Qt.callLater(() => layoutReady = true)
+
+                            width: startupListView.width
+                            height: root.s(44) + (model.isEditing ? editPanel.implicitHeight + root.s(12) : 0)
+                            radius: root.s(8)
+
+                            HoverHandler { id: startupRowHover }
+                            property bool isHovered: startupRowHover.hovered || model.isEditing || isJumpHighlighted
+                            color: isJumpHighlighted ? root.surface1 : (isHovered ? root.surface1 : root.surface0)
+                            border.color: isJumpHighlighted ? root.green : (isHovered ? Qt.alpha(root.green, 0.5) : root.surface1)
+                            border.width: isJumpHighlighted ? 2 : 1
+
+                            Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutQuart } }
+                            Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutExpo } }
+                            Behavior on border.color { ColorAnimation { duration: 200; easing.type: Easing.OutExpo } }
+                            Behavior on border.width { NumberAnimation { duration: 150 } }
+
+                            MouseArea { anchors.fill: parent; z: -2; onClicked: root.highlightedBox = outerIndex; }
+
+                            ColumnLayout {
+                                anchors.fill: parent; anchors.margins: root.s(10); spacing: root.s(10)
+
+                                Item {
+                                    Layout.fillWidth: true; Layout.preferredHeight: root.s(24); clip: true
+
+                                    Rectangle {
+                                        id: startupEditBtn
+                                        width: root.s(26); height: root.s(26); radius: root.s(6)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: startupRowRect.isHovered ? parent.width - width : parent.width
+                                        color: model.isEditing
+                                            ? root.green
+                                            : (startupEditMa.containsMouse ? root.green : root.surface2)
+                                        Behavior on x {
+                                            enabled: startupRowRect.layoutReady
+                                            NumberAnimation { duration: 250; easing.type: Easing.OutQuart }
+                                        }
+                                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: model.isEditing ? "▴" : "󰏫"
+                                            font.family: model.isEditing ? "Inter" : "Iosevka Nerd Font"
+                                            font.pixelSize: root.s(13)
+                                            color: model.isEditing
+                                                ? root.base
+                                                : (startupEditMa.containsMouse ? root.base : root.subtext0)
+                                            Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutExpo } }
+                                        }
+                                        MouseArea {
+                                            id: startupEditMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor;
+                                            onClicked: {
+                                                dynamicStartupModel.setProperty(outerIndex, "isEditing", !model.isEditing);
+                                                if (!model.isEditing) root.forceActiveFocus();
+                                            }
+                                        }
+                                    }
+
+                                    Item {
+                                        anchors.left: parent.left
+                                        anchors.right: startupEditBtn.left; anchors.rightMargin: root.s(6)
+                                        anchors.verticalCenter: parent.verticalCenter; height: parent.height; clip: true
+
+                                        Text {
+                                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                            text: model.command !== "" ? model.command : "(empty command)"
+                                            font.family: "JetBrains Mono"; font.pixelSize: root.s(10)
+                                            color: model.command !== "" ? root.text : root.overlay0
+                                            elide: Text.ElideRight; width: parent.width
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    id: editPanel
+                                    Layout.fillWidth: true
+                                    implicitHeight: editPanelCol.implicitHeight
+                                    visible: model.isEditing
+                                    opacity: model.isEditing ? 1.0 : 0.0
+                                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutExpo } }
+
+                                    ColumnLayout {
+                                        id: editPanelCol
+                                        anchors.left: parent.left; anchors.right: parent.right
+                                        spacing: root.s(8)
+
+                                        Rectangle {
+                                            Layout.fillWidth: true; Layout.preferredHeight: root.s(32); radius: root.s(6)
+                                            color: root.surface0; border.color: cmdInputFocus.activeFocus ? root.green : root.surface2; border.width: 1
+                                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                                            RowLayout {
+                                                anchors.fill: parent; anchors.leftMargin: root.s(10); anchors.rightMargin: root.s(10); spacing: root.s(8)
+                                                TextInput {
+                                                    id: cmdInputFocus
+                                                    Layout.fillWidth: true; Layout.fillHeight: true; verticalAlignment: TextInput.AlignVCenter
+                                                    font.family: "JetBrains Mono"; font.pixelSize: root.s(10); color: root.text; clip: true; selectByMouse: true
+                                                    text: model.command
+                                                    onTextChanged: dynamicStartupModel.setProperty(outerIndex, "command", text)
+                                                    Keys.onEscapePressed: { dynamicStartupModel.setProperty(outerIndex, "isEditing", false); root.forceActiveFocus(); }
+                                                    Text {
+                                                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                                        text: "e.g. waybar, dunst, nm-applet"
+                                                        color: Qt.alpha(root.subtext0, 0.45); visible: !parent.text && !parent.activeFocus
+                                                        font.family: "JetBrains Mono"; font.pixelSize: root.s(10)
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true; Layout.alignment: Qt.AlignRight; spacing: root.s(8)
+
+                                            Rectangle {
+                                                Layout.preferredHeight: root.s(28); Layout.preferredWidth: startupDelRow.implicitWidth + root.s(16)
+                                                radius: root.s(6)
+                                                color: startupDelMa.containsMouse ? root.red : root.surface1
+                                                border.color: startupDelMa.containsMouse ? root.red : root.surface2; border.width: 1
+                                                Behavior on color { ColorAnimation { duration: 150 } }
+                                                RowLayout {
+                                                    id: startupDelRow; anchors.centerIn: parent; spacing: root.s(5)
+                                                    Text { text: "󰆴"; font.family: "Iosevka Nerd Font"; font.pixelSize: root.s(12); color: startupDelMa.containsMouse ? root.base : root.red; Behavior on color { ColorAnimation { duration: 150 } } }
+                                                    Text { text: "Delete"; font.family: "JetBrains Mono"; font.pixelSize: root.s(10); color: startupDelMa.containsMouse ? root.base : root.red; Behavior on color { ColorAnimation { duration: 150 } } }
+                                                }
+                                                MouseArea { id: startupDelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { dynamicStartupModel.remove(outerIndex); root.saveAllStartup(); } }
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredHeight: root.s(28); Layout.preferredWidth: startupDoneRow.implicitWidth + root.s(16)
+                                                radius: root.s(6)
+                                                color: startupDoneMa.containsMouse ? root.green : root.surface1
+                                                border.color: startupDoneMa.containsMouse ? root.green : root.surface2; border.width: 1
+                                                Behavior on color { ColorAnimation { duration: 150 } }
+                                                RowLayout {
+                                                    id: startupDoneRow; anchors.centerIn: parent; spacing: root.s(5)
+                                                    Text { text: "󰸞"; font.family: "Iosevka Nerd Font"; font.pixelSize: root.s(12); color: startupDoneMa.containsMouse ? root.base : root.green; Behavior on color { ColorAnimation { duration: 150 } } }
+                                                    Text { text: "Done"; font.family: "JetBrains Mono"; font.pixelSize: root.s(10); color: startupDoneMa.containsMouse ? root.base : root.green; Behavior on color { ColorAnimation { duration: 150 } } }
+                                                }
+                                                MouseArea {
+                                                    id: startupDoneMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        dynamicStartupModel.setProperty(outerIndex, "isEditing", false);
+                                                        root.forceActiveFocus();
+                                                        root.saveAllStartup();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

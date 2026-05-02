@@ -23,9 +23,10 @@ get_icon() {
 
 get_audio_profile() {
     local mac="$1"
+    local cards_data="$2"
     local mac_us="${mac//:/_}"
     
-    local active=$(pactl list cards 2>/dev/null | awk -v mac="$mac_us" '
+    local active=$(echo "$cards_data" | awk -v mac="$mac_us" '
         tolower($0) ~ "name:.*"tolower(mac) { found=1 }
         found && tolower($0) ~ "active profile:" { 
             sub(/.*Active Profile: /, ""); print; exit 
@@ -72,6 +73,9 @@ get_status() {
         mapfile -t devices < <(bluetoothctl devices)
         mapfile -t connected_info_lines < <(bluetoothctl devices Connected)
         
+        # THE FIX: Cache pactl output ONCE per script execution with a strict timeout
+        cached_cards=$(timeout 0.5 pactl list cards 2>/dev/null)
+        
         connected_macs=""
         connected_list_objs=()
         devices_list_objs=()
@@ -92,7 +96,9 @@ get_status() {
                 info=$(bluetoothctl info "$mac")
                 icon_type=$(echo "$info" | awk -F': ' '/Icon:/ {print $2}')
                 icon=$(get_icon "$icon_type" "$name")
-                profile=$(get_audio_profile "$mac")
+                
+                # THE FIX: Pass the cached output instead of calling pactl again
+                profile=$(get_audio_profile "$mac" "$cached_cards")
                 
                 echo "CACHE_NAME=\"${name//\"/\\\"}\"" > "$CACHE_FILE"
                 echo "CACHE_ICON=\"${icon//\"/\\\"}\"" >> "$CACHE_FILE"
@@ -149,7 +155,6 @@ get_status() {
 
     echo "{\"present\":true,\"power\":\"$power\",\"connected\":$connected_json,\"devices\":$devices_json}"
 }
-
 
 toggle_power() {
     if bluetoothctl show | grep -q "Powered: yes"; then
