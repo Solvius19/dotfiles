@@ -385,7 +385,7 @@ ShellRoot {
                             interval: 1000; running: true; repeat: true; triggeredOnStart: true
                             onTriggered: {
                                 let d = new Date();
-                                clockHours.text = Qt.formatDateTime(d, "h");
+                                clockHours.text = Qt.formatDateTime(d, "h AP");
                                 clockMinutes.text = Qt.formatDateTime(d, "mm");
                                 dateText.text = Qt.formatDateTime(d, "dddd, MMMM dd");
                             }
