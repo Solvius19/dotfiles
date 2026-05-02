@@ -440,7 +440,7 @@ ShellRoot {
                             Image {
                                 id: avatarImg
                                 anchors.fill: parent
-                                source: screenRoot.faceIconPath !== "" ? screenRoot.faceIconPath : ""
+                                source: screenRoot.faceIconPath !== "/home/shreekhasnis/earth-ios-11-stock-black-background-ipad-2048x2048-771.jpg" ? screenRoot.faceIconPath : "/home/shreekhasnis/earth-ios-11-stock-black-background-ipad-2048x2048-771.jpg"
                                 fillMode: Image.PreserveAspectCrop
                                 visible: false 
                                 cache: false
