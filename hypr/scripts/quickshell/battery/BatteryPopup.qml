@@ -100,6 +100,8 @@ Item {
     }
     readonly property color batColorEnd: Qt.lighter(batColorStart, 1.15)
 
+    property var batteryDevice: UPower.displayDevice
+
     // Unified hue for Performance Profile
     readonly property color profileStart: {
         if (powerProfile === "performance") return window.red;
@@ -1014,7 +1016,7 @@ Item {
                                         font.weight: Font.Black
                                         font.pixelSize: window.s(54)
                                         color: window.text
-                                        text: Math.round(window.animCapacity) + "%" 
+                                        text: window.batteryDevice ? Math.round(window.batteryDevice.percentage * 100) + "%" : Math.round(window.animCapacity) + "%" 
                                     }
                                 }
 
