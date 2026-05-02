@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
+import Quickshell.Services.UPower
 
 Variants {
     model: Quickshell.screens
@@ -14,18 +15,7 @@ Variants {
         PanelWindow {
             id: barWindow
             property bool pendingReload: false
-	    
-	    Connections {
-                target: Quickshell
 
-                function onReloadCompleted() {
-                    Quickshell.inhibitReloadPopup()
-                }
-
-                function onReloadFailed(errorString) {
-                    Quickshell.inhibitReloadPopup()
-                }
-    	    }        
             IpcHandler {
                 target: "topbar"
                 function forceReload() {
@@ -73,6 +63,39 @@ Variants {
             MatugenColors {
                 id: mocha
             }
+
+            function getBatteryIcon(percent, state) {
+                var isCharging = state === UPowerDeviceState.Charging || state === UPowerDeviceState.FullyCharged;
+                if (isCharging) {
+                    if (percent >= 90) return "󰂅";
+                    else if (percent >= 80) return "󰂋";
+                    else if (percent >= 60) return "󰂊";
+                    else if (percent >= 40) return "󰢞";
+                    else if (percent >= 20) return "󰂆";
+                    else return "󰢜";
+                } else {
+                    if (percent >= 90) return "󰁹";
+                    else if (percent >= 80) return "󰂂";
+                    else if (percent >= 70) return "󰂁";
+                    else if (percent >= 60) return "󰂀";
+                    else if (percent >= 50) return "󰁿";
+                    else if (percent >= 40) return "󰁾";
+                    else if (percent >= 30) return "󰁽";
+                    else if (percent >= 20) return "󰁼";
+                    else if (percent >= 10) return "󰁻";
+                    else return "󰁺";
+                }
+            }
+
+            function mapState(state) {
+                if (state === UPowerDeviceState.Charging) return "Charging";
+                else if (state === UPowerDeviceState.Discharging) return "Discharging";
+                else if (state === UPowerDeviceState.FullyCharged) return "Full";
+                else if (state === UPowerDeviceState.PendingCharge) return "Pending";
+                else return "Unknown";
+            }
+
+            property var battery: !isDesktop ? UPower.displayDevice : null
 
             property bool showHelpIcon: true
             property bool isRecording: false
@@ -244,9 +267,9 @@ Variants {
             property string volIcon: "󰕾"
             property bool isMuted: false
             
-            property string batPercent: "100%"
-            property string batIcon: "󰁹"
-            property string batStatus: "Unknown"
+            property string batPercent: battery ? Math.round(battery.percentage * 100) + "%" : "100%"
+            property string batIcon: battery ? getBatteryIcon(Math.round(battery.percentage * 100), battery.state) : "󰁹"
+            property string batStatus: battery ? mapState(battery.state) : "Unknown"
             
             property string kbLayout: "us"
             
@@ -417,17 +440,6 @@ Variants {
                 }
             }
 
-            Timer {
-                id: artRetryTimer
-                interval: 500
-                repeat: true
-                running: barWindow.displayArtUrl && barWindow.displayArtUrl.indexOf("placeholder_blank.png") !== -1
-                onTriggered: {
-                    musicForceRefresh.running = false;
-                    musicForceRefresh.running = true;
-                }
-            }
-
             Process {
                 id: kbPoller; running: true
                 command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/kb_fetch.sh"]
@@ -509,28 +521,6 @@ Variants {
             }
             Process { id: btWaiter; command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/bt_wait.sh"]; onExited: { btPoller.running = false; btPoller.running = true; } }
 
-            Process {
-                id: batteryPoller; running: true
-                command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/battery_fetch.sh"]
-                stdout: StdioCollector {
-                    onStreamFinished: {
-                        let txt = this.text.trim();
-                        if (txt !== "") {
-                            try {
-                                let data = JSON.parse(txt);
-                                let newBat = data.percent.toString() + "%";
-                                if (barWindow.batPercent !== newBat) barWindow.batPercent = newBat;
-                                if (barWindow.batIcon !== data.icon) barWindow.batIcon = data.icon;
-                                if (barWindow.batStatus !== data.status) barWindow.batStatus = data.status;
-                            } catch(e) {}
-                        }
-                        batteryWaiter.running = false;
-                        batteryWaiter.running = true;
-                    }
-                }
-            }
-            Process { id: batteryWaiter; command: ["bash", "-c", "~/.config/hypr/scripts/quickshell/watchers/battery_wait.sh"]; onExited: { batteryPoller.running = false; batteryPoller.running = true; } }
-
 
             Process {
                 id: weatherPoller
@@ -589,10 +579,10 @@ Variants {
                     
                     property bool showLayout: false
                     
-                    opacity: (showLayout && !barWindow.isSettingsOpen) ? 1 : 0
-                    enabled: !barWindow.isSettingsOpen
+                    opacity: showLayout ? 1 : 0
+                    enabled: true
                     
-                    property real targetX: (showLayout && !barWindow.isSettingsOpen) ? 0 : barWindow.s(-200)
+                    property real targetX: showLayout ? 0 : barWindow.s(-200)
                     x: targetX
                     Behavior on x { NumberAnimation { duration: 600; easing.type: Easing.OutExpo } }
                     Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
@@ -676,8 +666,13 @@ Variants {
                             property bool isHovered: settingsMouse.containsMouse
                             color: isHovered ? Qt.rgba(mocha.surface1.r, mocha.surface1.g, mocha.surface1.b, 0.6) : "transparent"
                             radius: barWindow.s(10)
-                            height: parent.pillHeight; width: barWindow.s(34)
+                            height: parent.pillHeight
+                            width: barWindow.isSettingsOpen ? 0 : barWindow.s(34)
                             
+                            visible: width > 0
+                            opacity: barWindow.isSettingsOpen ? 0 : 1
+                            Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
+                            Behavior on opacity { NumberAnimation { duration: 300 } }
                             Behavior on color { ColorAnimation { duration: 200 } }
                             
                             Text {
@@ -1485,44 +1480,28 @@ Variants {
 
                                 Row { 
                                     id: batLayoutRow
-                                    anchors.centerIn: parent
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: barWindow.s(12)
                                     spacing: barWindow.s(8)
-
-                                    Rectangle {
-                                        width: barWindow.s(28)
-                                        height: barWindow.s(28)
-                                        radius: barWindow.s(14)
-                                        color: barWindow.batDynamicColor
+                                    Text { 
                                         anchors.verticalCenter: parent.verticalCenter
-                                        border.width: 1
-                                        border.color: Qt.rgba(mocha.base.r, mocha.base.g, mocha.base.b, 0.15)
+                                        text: barWindow.isDesktop ? "" : barWindow.batIcon; 
+                                        font.family: "Iosevka Nerd Font"; font.pixelSize: barWindow.isDesktop ? barWindow.s(18) : barWindow.s(16); 
+                                        color: mocha.base 
                                         Behavior on color { ColorAnimation { duration: 300 } }
-                                        Behavior on border.color { ColorAnimation { duration: 300 } }
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: barWindow.isDesktop ? "" : barWindow.batIcon
-                                            font.family: "Iosevka Nerd Font"
-                                            font.pixelSize: barWindow.isDesktop ? barWindow.s(16) : barWindow.s(14)
-                                            color: mocha.base
-                                            Behavior on color { ColorAnimation { duration: 300 } }
-                                        }
                                     }
-
                                     Text { 
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: !barWindow.isDesktop
-                                        text: barWindow.batPercent
-                                        font.family: "JetBrains Mono"
-                                        font.pixelSize: barWindow.s(13)
-                                        font.weight: Font.Black
+                                        text: barWindow.batPercent; font.family: "JetBrains Mono"; font.pixelSize: barWindow.s(13); font.weight: Font.Black; 
                                         color: mocha.base 
                                         Behavior on color { ColorAnimation { duration: 300 } }
                                     }
                                 }
                                 MouseArea { id: batMouse; hoverEnabled: true; anchors.fill: parent; onClicked: Quickshell.execDetached(["bash", "-c", "~/.config/hypr/scripts/qs_manager.sh toggle battery"]) }
-                            }                        
-	         	}
+                            }
+                        }
 		    }
 		    Rectangle {
                         id: recButton
