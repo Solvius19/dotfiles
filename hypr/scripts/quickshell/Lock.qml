@@ -385,7 +385,7 @@ ShellRoot {
                             interval: 1000; running: true; repeat: true; triggeredOnStart: true
                             onTriggered: {
                                 let d = new Date();
-                                clockHours.text = Qt.formatDateTime(d, "hAP").replace(/ AM| PM/, ""); // Remove AM/PM for cleaner look
+                                clockHours.text = Qt.formatDateTime(d, "h AP").replace(/ AM| PM/, ""); // Remove AM/PM for cleaner look
                                 clockMinutes.text = Qt.formatDateTime(d, "mm");
                                 dateText.text = Qt.formatDateTime(d, "dddd, MMMM dd");
                             }
