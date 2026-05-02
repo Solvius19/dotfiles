@@ -557,7 +557,7 @@ Variants {
                 interval: 1000; running: true; repeat: true; triggeredOnStart: true
                 onTriggered: {
                     let d = new Date();
-                    barWindow.timeStr = Qt.formatDateTime(d, "HH:mm:ss");
+                    barWindow.timeStr = Qt.formatDateTime(d, "h:mm:ss");
                     barWindow.fullDateStr = Qt.formatDateTime(d, "dddd, MMMM dd");
                     if (barWindow.typeInIndex >= barWindow.fullDateStr.length) {
                         barWindow.typeInIndex = barWindow.fullDateStr.length;
@@ -1487,17 +1487,35 @@ Variants {
                                     id: batLayoutRow
                                     anchors.centerIn: parent
                                     spacing: barWindow.s(8)
-                                    Text { 
+
+                                    Rectangle {
+                                        width: barWindow.s(28)
+                                        height: barWindow.s(28)
+                                        radius: barWindow.s(14)
+                                        color: barWindow.batDynamicColor
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: barWindow.isDesktop ? "" : barWindow.batIcon; 
-                                        font.family: "Iosevka Nerd Font"; font.pixelSize: barWindow.isDesktop ? barWindow.s(18) : barWindow.s(16); 
-                                        color: mocha.base 
+                                        border.width: 1
+                                        border.color: Qt.rgba(mocha.base.r, mocha.base.g, mocha.base.b, 0.15)
                                         Behavior on color { ColorAnimation { duration: 300 } }
+                                        Behavior on border.color { ColorAnimation { duration: 300 } }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: barWindow.isDesktop ? "" : barWindow.batIcon
+                                            font.family: "Iosevka Nerd Font"
+                                            font.pixelSize: barWindow.isDesktop ? barWindow.s(16) : barWindow.s(14)
+                                            color: mocha.base
+                                            Behavior on color { ColorAnimation { duration: 300 } }
+                                        }
                                     }
+
                                     Text { 
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: !barWindow.isDesktop
-                                        text: barWindow.batPercent; font.family: "JetBrains Mono"; font.pixelSize: barWindow.s(13); font.weight: Font.Black; 
+                                        text: barWindow.batPercent
+                                        font.family: "JetBrains Mono"
+                                        font.pixelSize: barWindow.s(13)
+                                        font.weight: Font.Black
                                         color: mocha.base 
                                         Behavior on color { ColorAnimation { duration: 300 } }
                                     }
