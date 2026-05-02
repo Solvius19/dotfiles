@@ -728,7 +728,7 @@ ShellRoot {
                             
                             property color dynamicBatColor: {
                                 if (screenRoot.batStatus === "Charging") return root.green;
-                                let pct = Math.round(UPower.displayDevice.percentage * 100);
+                                let pct = screenRoot.batPct;
                                 if (pct >= 60) return root.green;
                                 if (pct >= 25) return root.peach;
                                 return root.red;
@@ -742,7 +742,7 @@ ShellRoot {
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             Text { 
-                                text: screenRoot.batPct.toString() + "%"
+                                text: Math.round(UPower.displayDevice.percentage * 100) + "%"
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: 14 * screenRoot.sc
                                 font.weight: Font.Black
