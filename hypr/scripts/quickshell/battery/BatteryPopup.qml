@@ -4,7 +4,6 @@ import QtQuick.Window
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.UPower
 import "../"
 
 Item {
@@ -54,15 +53,9 @@ Item {
     // -------------------------------------------------------------------------
     // STATE & POLLING
     // -------------------------------------------------------------------------
-
-    // --- UPOWER (reactive, no polling needed for battery/status/profile) ---
-    readonly property int batCapacity: Math.round(UPower.displayDevice.percentage * 100)
-    readonly property var batState: UPower.displayDevice.state
-    readonly property var powerProfile: PowerProfiles.profile
-    property int timeToFull: 0
-    
-    property int fullHours: Math.floor(timeToFull / 3600)
-    property int fullMins: Math.floor((timeToFull % 3600) / 60)
+    property int batCapacity: 0
+    property string batStatus: "Unknown"
+    property string powerProfile: "balanced"
     
     property int upHours: 0
     property int upMins: 0
@@ -95,7 +88,7 @@ Item {
     Timer { id: volSyncDelay; interval: 800; onTriggered: window.isDraggingVol = false; triggeredOnStart: true; }
     Timer { id: briSyncDelay; interval: 800; onTriggered: window.isDraggingBri = false; triggeredOnStart: true; }
 
-    readonly property bool isCharging: batState === UPowerDeviceState.Charging || batState === UPowerDeviceState.PendingCharge
+    readonly property bool isCharging: batStatus === "Charging"
 
     // Unified hue for Battery
     readonly property color batColorStart: {
@@ -108,8 +101,8 @@ Item {
 
     // Unified hue for Performance Profile
     readonly property color profileStart: {
-        if (powerProfile === PowerProfile.Performance) return window.red;
-        if (powerProfile === PowerProfile.PowerSaver) return window.green;
+        if (powerProfile === "performance") return window.red;
+        if (powerProfile === "power-saver") return window.green;
         return window.blue;
     }
     readonly property color profileEnd: Qt.lighter(profileStart, 1.15)
@@ -152,14 +145,12 @@ Item {
         }
     }
 
-    // Sync animCapacity whenever UPower updates the battery percentage
-    onBatCapacityChanged: {
-        animCapacity = batCapacity;
-    }
-
     Process {
         id: sysPoller
-        command: ["bash", "-c",
+        command: ["bash", "-c", 
+            "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 || echo '0'; " +
+            "cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1 || echo 'Unknown'; " +
+            "powerprofilesctl get 2>/dev/null || echo 'balanced'; " +
             "awk '{print int($1/3600)\"h \"int(($1%3600)/60)\"m\"}' /proc/uptime 2>/dev/null || echo '0h 0m'; " +
             "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100), ($3==\"[MUTED]\"?\"off\":\"on\")}' || echo '0 on'; " +
             "brightnessctl -m 2>/dev/null | awk -F, '{print substr($4, 1, length($4)-1)}' || echo '0'"
@@ -168,21 +159,28 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 let lines = this.text.trim().split("\n");
-                if (lines.length >= 3) {
-                    let upParts = lines[0].split("h ");
+                if (lines.length >= 6) {
+                    if (window.batCapacity !== parseInt(lines[0])) {
+                        window.batCapacity = parseInt(lines[0]);
+                        window.animCapacity = window.batCapacity;
+                    }
+                    window.batStatus = lines[1];
+                    window.powerProfile = lines[2];
+                    
+                    let upParts = lines[3].split("h ");
                     if (upParts.length === 2) {
                         window.upHours = parseInt(upParts[0]) || 0;
                         window.upMins = parseInt(upParts[1].replace("m", "")) || 0;
                     }
 
                     if (!window.isDraggingVol) {
-                        let volParts = (lines[1] || "0 on").trim().split(" ");
+                        let volParts = (lines[4] || "0 on").trim().split(" ");
                         window.sysVolume = parseInt(volParts[0]) || 0;
                         window.sysMuted = (volParts[1] === "off");
                     }
-
+                    
                     if (!window.isDraggingBri) {
-                        window.sysBrightness = parseInt(lines[2]) || 0;
+                        window.sysBrightness = parseInt(lines[5]) || 0;
                     }
                 }
             }
@@ -191,22 +189,6 @@ Item {
     Timer {
         interval: 1500; running: true; repeat: true; triggeredOnStart: true;
         onTriggered: sysPoller.running = true
-    }
-
-    Process {
-        id: timeToFullPoller
-        running: window.isCharging
-        command: ["bash", "-c", "upower -i /org/freedesktop/UPower/devices/battery_BAT0 2>/dev/null | awk '/time to full/ {print $4}' | sed 's/seconds//' | sed 's/minutes/*60/' | sed 's/hours/*3600/' | bc 2>/dev/null || echo '0'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                window.timeToFull = parseInt(this.text.trim()) || 0;
-            }
-        }
-    }
-
-    Timer {
-        interval: 60000; running: window.isCharging; repeat: true; triggeredOnStart: true;
-        onTriggered: timeToFullPoller.running = true
     }
 
     property real globalOrbitAngle: 0
@@ -685,158 +667,68 @@ Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.margins: window.s(25)
-                        spacing: window.s(12)
+                        spacing: window.s(6)
                         
                         transform: Translate { y: window.s(-20) * (1.0 - introTop) }
                         opacity: introTop
                         
-                        // Uptime Box
+                        // Hours Box
                         Rectangle {
-                            width: uptimeRow.implicitWidth + window.s(16)
-                            height: window.s(48)
-                            radius: window.s(10)
-                            color: window.surface0
-                            border.color: window.surface1
-                            border.width: 1
+                            width: window.s(44); height: window.s(48); radius: window.s(10)
+                            color: window.surface0; border.color: window.surface1; border.width: 1
                             
-                            Row {
-                                id: uptimeRow
+                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientPrimary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
+                            Column {
                                 anchors.centerIn: parent
-                                spacing: window.s(6)
-                                
-                                // Hours Box
-                                Rectangle {
-                                    width: window.s(44); height: window.s(48); radius: window.s(10)
-                                    color: "transparent"
-                                    
-                                    Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientPrimary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
-                                    Column {
-                                        anchors.centerIn: parent
-                                        Text { 
-                                            text: window.upHours.toString().padStart(2, '0')
-                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                            color: window.ambientPrimary
-                                            Behavior on color { ColorAnimation { duration: 1000 } }
-                                            anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                        Text { 
-                                            text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                    }
-                                }
-
-                                // Pulsing Colon
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: ":"
-                                    font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                Text { 
+                                    text: window.upHours.toString().padStart(2, '0')
+                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
                                     color: window.ambientPrimary
                                     Behavior on color { ColorAnimation { duration: 1000 } }
-                                    
-                                    opacity: uptimePulse
-                                    property real uptimePulse: 1.0
-                                    SequentialAnimation on uptimePulse {
-                                        loops: Animation.Infinite; running: true
-                                        NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
-                                        NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
-                                    }
+                                    anchors.horizontalCenter: parent.horizontalCenter 
                                 }
-
-                                // Mins Box
-                                Rectangle {
-                                    width: window.s(44); height: window.s(48); radius: window.s(10)
-                                    color: "transparent"
-                                    
-                                    Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientSecondary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
-                                    Column {
-                                        anchors.centerIn: parent
-                                        Text { 
-                                            text: window.upMins.toString().padStart(2, '0')
-                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                            color: window.ambientSecondary
-                                            Behavior on color { ColorAnimation { duration: 1000 } }
-                                            anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                        Text { 
-                                            text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                    }
+                                Text { 
+                                    text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
                                 }
                             }
                         }
 
-                        // Time to full Box
+                        // Pulsing Colon
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ":"
+                            font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
+                            color: window.ambientPrimary
+                            Behavior on color { ColorAnimation { duration: 1000 } }
+                            
+                            opacity: uptimePulse
+                            property real uptimePulse: 1.0
+                            SequentialAnimation on uptimePulse {
+                                loops: Animation.Infinite; running: true
+                                NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
+                                NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                            }
+                        }
+
+                        // Mins Box
                         Rectangle {
-                            visible: window.isCharging
-                            width: fullRow.implicitWidth + window.s(16)
-                            height: window.s(48)
-                            radius: window.s(10)
-                            color: window.surface0
-                            border.color: window.surface1
-                            border.width: 1
+                            width: window.s(44); height: window.s(48); radius: window.s(10)
+                            color: window.surface0; border.color: window.surface1; border.width: 1
                             
-                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.green; opacity: 0.05; }
-                            
-                            Row {
-                                id: fullRow
+                            Rectangle { anchors.fill: parent; radius: window.s(10); color: window.ambientSecondary; opacity: 0.05; Behavior on color { ColorAnimation { duration: 1000 } } }
+                            Column {
                                 anchors.centerIn: parent
-                                spacing: window.s(6)
-                                
-                                // Full Hours Box
-                                Rectangle {
-                                    width: window.s(44); height: window.s(48); radius: window.s(10)
-                                    color: "transparent"
-                                    
-                                    Column {
-                                        anchors.centerIn: parent
-                                        Text { 
-                                            text: window.fullHours.toString().padStart(2, '0')
-                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                            color: window.green
-                                            anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                        Text { 
-                                            text: "HR"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                    }
+                                Text { 
+                                    text: window.upMins.toString().padStart(2, '0')
+                                    font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
+                                    color: window.ambientSecondary
+                                    Behavior on color { ColorAnimation { duration: 1000 } }
+                                    anchors.horizontalCenter: parent.horizontalCenter 
                                 }
-
-                                // Pulsing Colon for time to full
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: ":"
-                                    font.pixelSize: window.s(22); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                    color: window.green
-                                    
-                                    opacity: uptimePulse
-                                    SequentialAnimation on opacity {
-                                        loops: Animation.Infinite; running: true
-                                        NumberAnimation { to: 0.2; duration: 800; easing.type: Easing.InOutSine }
-                                        NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
-                                    }
-                                }
-
-                                // Full Mins Box
-                                Rectangle {
-                                    width: window.s(44); height: window.s(48); radius: window.s(10)
-                                    color: "transparent"
-                                    
-                                    Column {
-                                        anchors.centerIn: parent
-                                        Text { 
-                                            text: window.fullMins.toString().padStart(2, '0')
-                                            font.pixelSize: window.s(18); font.family: "JetBrains Mono"; font.weight: Font.Black
-                                            color: window.green
-                                            anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                        Text { 
-                                            text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
-                                            color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
-                                        }
-                                    }
+                                Text { 
+                                    text: "MIN"; font.pixelSize: window.s(8); font.family: "JetBrains Mono"; font.weight: Font.Bold
+                                    color: window.subtext0; anchors.horizontalCenter: parent.horizontalCenter 
                                 }
                             }
                         }
@@ -1123,7 +1015,7 @@ Item {
                                             ? Qt.tint(window.green, Qt.rgba(1, 1, 1, parent.textPulse * 0.4)) 
                                             : (centralCore.isDangerState ? Qt.tint(window.red, Qt.rgba(1, 1, 1, parent.textPulse * 0.3)) : window.subtext0)
                                             
-                                    text: UPowerDeviceState.toString(window.batState).toUpperCase()
+                                    text: window.batStatus.toUpperCase()
                                     Behavior on color { ColorAnimation { duration: 300 } }
                                 }
                             }
@@ -1530,8 +1422,8 @@ Item {
                                 y: window.s(1)
                                 radius: window.s(10)
                                 x: {
-                                    if (window.powerProfile === PowerProfile.Performance) return window.s(1);
-                                    if (window.powerProfile === PowerProfile.Balanced) return width + window.s(1);
+                                    if (window.powerProfile === "performance") return window.s(1);
+                                    if (window.powerProfile === "balanced") return width + window.s(1);
                                     return (width * 2) + window.s(1);
                                 }
                                 
@@ -1549,14 +1441,13 @@ Item {
                                 spacing: 0
                                 
                                 Repeater {
-                                    model: [
-                                        { profile: PowerProfile.Performance, icon: "󰓅", label: "Perform" },
-                                        { profile: PowerProfile.Balanced,    icon: "󰗑", label: "Balance" },
-                                        { profile: PowerProfile.PowerSaver,  icon: "󰌪", label: "Saver"   }
-                                    ]
+                                    model: ListModel {
+                                        ListElement { name: "performance"; icon: "󰓅"; label: "Perform" } 
+                                        ListElement { name: "balanced"; icon: "󰗑"; label: "Balance" }   
+                                        ListElement { name: "power-saver"; icon: "󰌪"; label: "Saver" } 
+                                    }
                                     
                                     delegate: Item {
-                                        required property var modelData
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         
@@ -1565,14 +1456,14 @@ Item {
                                             spacing: window.s(8)
                                             Text {
                                                 font.family: "Iosevka Nerd Font"; font.pixelSize: window.s(18)
-                                                color: window.powerProfile === modelData.profile ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
-                                                text: modelData.icon
+                                                color: window.powerProfile === name ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
+                                                text: icon
                                                 Behavior on color { ColorAnimation { duration: 200 } }
                                             }
                                             Text {
                                                 font.family: "JetBrains Mono"; font.weight: Font.Black; font.pixelSize: window.s(13)
-                                                color: window.powerProfile === modelData.profile ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
-                                                text: modelData.label
+                                                color: window.powerProfile === name ? window.crust : (profileMa.containsMouse ? window.text : window.subtext0)
+                                                text: label
                                                 Behavior on color { ColorAnimation { duration: 200 } }
                                             }
                                         }
@@ -1580,7 +1471,7 @@ Item {
                                         MouseArea {
                                             id: profileMa
                                             anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                            onClicked: { PowerProfiles.profile = modelData.profile; }
+                                            onClicked: { Quickshell.execDetached(["powerprofilesctl", "set", name]); sysPoller.running = true; }
                                         }
                                     }
                                 }
