@@ -946,7 +946,13 @@ Item {
                             Text { anchors.centerIn: parent; text: "+"; font.family: "Iosevka Nerd Font"; color: diaryMa.containsMouse ? window.mauve : window.text; font.pixelSize: Math.round(32 * window.sf) }
                             MouseArea { 
                                 id: diaryMa; anchors.fill: parent; hoverEnabled: true; 
-                                onClicked: Quickshell.execDetached(["bash", window.scriptsDir + "/diary_manager.sh"]) 
+                                onClicked: {
+                                    appleCalendarUrlInput.forceActiveFocus();
+                                    appleCalendarUrlInput.selectAll();
+                                    window.appleCalendarUrlStatus = window.appleCalendarUrl.trim() === "" ?
+                                        "Paste your Apple calendar .ics URL above and click Save." :
+                                        "Edit your Apple calendar URL above and click Save.";
+                                }
                             }
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
