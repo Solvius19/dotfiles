@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Check interval in seconds (600s = 10 minutes)
-INTERVAL=600
+INTERVAL=200
 
 # Cache file to prevent notification spam if the script is restarted
 CACHE_FILE="$HOME/.cache/qs_update_notified_version"
