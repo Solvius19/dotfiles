@@ -948,6 +948,7 @@ Item {
                             MouseArea { 
                                 id: diaryMa; anchors.fill: parent; hoverEnabled: true; 
                                 onClicked: {
+                                    window.appleCalendarUrlEditorVisible = true;
                                     appleCalendarUrlInput.forceActiveFocus();
                                     appleCalendarUrlInput.selectAll();
                                     window.appleCalendarUrlStatus = window.appleCalendarUrl.trim() === "" ?
