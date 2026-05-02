@@ -1116,7 +1116,8 @@ Item {
 
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Math.round(144 * window.sf)
+                            Layout.preferredHeight: Math.round(100 * window.sf)
+                            Layout.maximumHeight: Math.round(100 * window.sf)
                             radius: Math.round(16 * window.sf)
                             color: window.surface0
                             border.color: window.surface2
@@ -1125,7 +1126,7 @@ Item {
                             Flickable {
                                 anchors.fill: parent
                                 contentWidth: parent.width
-                                contentHeight: eventColumn.height
+                                contentHeight: Math.max(eventColumn.height, parent.height)
                                 clip: true
                                 flickableDirection: Flickable.VerticalFlick
 
