@@ -110,6 +110,7 @@ Item {
     property string appleCalendarUrl: ""
     property string appleCalendarUrlStatus: ""
     property var appleCalendarEvents: []
+    property bool appleCalendarUrlEditorVisible: false
 
     // -------------------------------------------------------------------------
     // TIME OF DAY DYNAMIC COLORS
