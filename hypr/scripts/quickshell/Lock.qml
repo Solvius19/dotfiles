@@ -728,7 +728,7 @@ ShellRoot {
                             
                             property color dynamicBatColor: {
                                 if (screenRoot.batStatus === "Charging") return root.green;
-                                let pct = screenRoot.batPct;
+                                let pct = Math.round(UPower.displayDevice.percentage * 100);
                                 if (pct >= 60) return root.green;
                                 if (pct >= 25) return root.peach;
                                 return root.red;
