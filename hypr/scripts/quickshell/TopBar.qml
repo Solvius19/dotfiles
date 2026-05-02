@@ -579,10 +579,10 @@ Variants {
                     
                     property bool showLayout: false
                     
-                    opacity: (showLayout && !barWindow.isSettingsOpen) ? 1 : 0
-                    enabled: !barWindow.isSettingsOpen
+                    opacity: showLayout ? 1 : 0
+                    enabled: true
                     
-                    property real targetX: (showLayout && !barWindow.isSettingsOpen) ? 0 : barWindow.s(-200)
+                    property real targetX: showLayout ? 0 : barWindow.s(-200)
                     x: targetX
                     Behavior on x { NumberAnimation { duration: 600; easing.type: Easing.OutExpo } }
                     Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
