@@ -878,7 +878,7 @@ Item {
                 anchors.top: parent.top
                 anchors.margins: Math.round(30 * window.sf)
                 width: Math.round(300 * window.sf)
-                height: Math.round(380 * window.sf)
+                height: Math.round(480 * window.sf)
                 color: Qt.alpha(window.surface0, 0.2) 
                 radius: Math.round(14 * window.sf)
                 border.color: Qt.alpha(window.surface1, 0.4)
