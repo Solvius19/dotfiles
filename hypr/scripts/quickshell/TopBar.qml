@@ -1065,6 +1065,80 @@ Variants {
                     Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
 
                     Rectangle {
+                        id: updateButton
+                        property bool isHovered: updateMouse.containsMouse
+                        color: isHovered ? Qt.rgba(mocha.green.r, mocha.green.g, mocha.green.b, 0.15) : "transparent"
+                        radius: barWindow.s(14)
+                        border.width: 1
+                        border.color: Qt.rgba(mocha.text.r, mocha.text.g, mocha.text.b, isHovered ? 0.15 : 0.05)
+                        
+                        width: barWindow.isUpdateVisible ? barWindow.barHeight : 0
+                        height: barWindow.barHeight
+                        
+                        visible: width > 0 || opacity > 0
+                        opacity: barWindow.isUpdateVisible ? 1.0 : 0.0
+                        clip: false 
+                        
+                        Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
+                        Behavior on opacity { NumberAnimation { duration: 300 } }
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        Behavior on border.color { ColorAnimation { duration: 200 } }
+                        
+                        scale: isHovered ? 1.05 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                        
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: parent.width
+                            height: parent.height
+                            radius: parent.radius
+                            color: mocha.green
+                            z: -1
+                            
+                            SequentialAnimation on scale {
+                                running: barWindow.isUpdateVisible && !updateButton.isHovered
+                                loops: Animation.Infinite
+                                NumberAnimation { from: 1.0; to: 1.3; duration: 2000; easing.type: Easing.OutCubic }
+                            }
+                            SequentialAnimation on opacity {
+                                running: barWindow.isUpdateVisible && !updateButton.isHovered
+                                loops: Animation.Infinite
+                                NumberAnimation { from: 0.15; to: 0.0; duration: 2000; easing.type: Easing.OutCubic }
+                            }
+                        }
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰚰"
+                            font.family: "Iosevka Nerd Font"; font.pixelSize: barWindow.s(20)
+                            color: parent.isHovered ? mocha.text : mocha.green
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            
+                            rotation: parent.isHovered ? 360 : 0
+                            Behavior on rotation {
+                                NumberAnimation { 
+                                    duration: 600
+                                    easing.type: Easing.OutBack
+                                }
+                            }
+
+                            scale: parent.isHovered ? 1.15 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutExpo } }
+                        }
+
+                        MouseArea {
+                            id: updateMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                barWindow.updateAvailable = false;
+                                barWindow.forceUpdateShow = false;
+                                Quickshell.execDetached(["bash", "-c", "~/.config/hypr/scripts/qs_manager.sh toggle updater"]);
+                            }
+                        }
+                    }
+
+                    Rectangle {
                         height: barWindow.barHeight
                         radius: barWindow.s(14)
                         border.color: Qt.rgba(mocha.text.r, mocha.text.g, mocha.text.b, 0.08)
