@@ -742,7 +742,7 @@ ShellRoot {
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             Text { 
-                                text: Math.round(UPower.displayDevice.percentage * 100) + "%"
+                                text: (Math.round(UPower.displayDevice.percentage * 100)).toString() + "%"
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: 14 * screenRoot.sc
                                 font.weight: Font.Black
