@@ -123,7 +123,7 @@ Item {
     }
 
     function maxHighlightForTab(tab) {
-        if (tab === 0) return 6;
+        if (tab === 0) return 7;
         if (tab === 1) return 3;
         if (tab === 2) return dynamicKeybindsModel.count - 1;
         return -1;
@@ -143,6 +143,8 @@ Item {
             } else if (root.highlightedBox === 5) {
                 if (generalLoader.item) generalLoader.item.focusWpDirInput();
             } else if (root.highlightedBox === 6) {
+            } else if (root.highlightedBox === 7) {
+                Quickshell.execDetached(["bash", "-c", "~/.config/hypr/scripts/qs_manager.sh toggle updater"]);
             }
         } else if (root.currentTab === 1) {
             if (root.highlightedBox === 0) {
