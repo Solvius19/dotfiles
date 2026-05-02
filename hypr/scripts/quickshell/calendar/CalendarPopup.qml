@@ -107,6 +107,10 @@ Item {
 
     readonly property string scriptsDir: Quickshell.env("HOME") + "/.config/hypr/scripts/quickshell/calendar"
 
+    property string appleCalendarUrl: ""
+    property string appleCalendarUrlStatus: ""
+    property var appleCalendarEvents: []
+
     // -------------------------------------------------------------------------
     // TIME OF DAY DYNAMIC COLORS
     // -------------------------------------------------------------------------
@@ -358,6 +362,78 @@ Item {
                 }
             }
         }
+    }
+
+    Process {
+        id: appleCalendarUrlLoader
+        command: ["bash", "-lc", "cat \"" + window.scriptsDir + "/apple_calendar_url\" 2>/dev/null || true"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                window.appleCalendarUrl = this.text.trim();
+            }
+        }
+    }
+
+    Process {
+        id: appleCalendarPoller
+        command: ["python3", window.scriptsDir + "/apple_calendar_fetch.py"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let txt = this.text.trim();
+                if (txt === "") {
+                    window.appleCalendarEvents = [];
+                } else {
+                    try { window.appleCalendarEvents = JSON.parse(txt); } catch(e) { console.log("Apple calendar parse error", e); window.appleCalendarEvents = []; }
+                }
+            }
+        }
+        onExited: {
+            if (window.appleCalendarEvents.length === 0 && window.appleCalendarUrl !== "") {
+                window.appleCalendarUrlStatus = "No events found or unable to parse calendar.";
+            } else {
+                window.appleCalendarUrlStatus = "";
+            }
+        }
+    }
+
+    Timer {
+        interval: 600000
+        running: true; repeat: true
+        onTriggered: appleCalendarPoller.running = true
+    }
+
+    Process {
+        id: saveCalendarUrl
+        command: ["python3", window.scriptsDir + "/save_calendar_url.py", window.appleCalendarUrl]
+        running: false
+        onExited: {
+            appleCalendarUrlLoader.running = true;
+            appleCalendarPoller.running = true;
+            window.appleCalendarUrlStatus = "Apple calendar saved.";
+        }
+    }
+
+    onAppleCalendarUrlChanged: {
+        if (window.appleCalendarUrl !== "") {
+            appleCalendarPoller.running = true;
+        }
+    }
+
+    Timer {
+        interval: 5000; running: false; repeat: false
+        onTriggered: {
+            window.appleCalendarUrlStatus = "";
+        }
+    }
+
+    Timer {
+        id: clearStatusTimer
+        interval: 5000
+        running: false
+        repeat: false
+        onTriggered: window.appleCalendarUrlStatus = ""
     }
 
     Timer {
