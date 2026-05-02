@@ -8,7 +8,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
-import "../" 
+import "../" // Assuming scaler.qml is available here
 
 ShellRoot {
     id: root
@@ -30,9 +30,10 @@ ShellRoot {
     readonly property color blue: _theme.blue
     readonly property color green: _theme.green
 
-    // Session Settings (Changed from Settings to QtObject to fix the Qt 6.11 initialization error)
-    QtObject {
+    // Persistent Settings
+    Settings {
         id: lockSettings
+        category: "QuickshellLockscreen"
         property bool hidePassword: false
         property int revealDuration: 300
     }
@@ -45,19 +46,11 @@ ShellRoot {
         property string statusText: "Locked"
     }
 
-    // Timer to safely decouple PAM execution from the main QML event loop
-    Timer {
-        id: pamActionTimer
-        interval: 50
-        onTriggered: pam.start()
-    }
-
     // System Authentication hook
     PamContext {
         id: pam
         
-        // Defer start until after component initialization to prevent memory segfaults
-        Component.onCompleted: pamActionTimer.start()
+        Component.onCompleted: pam.start()
 
         onCompleted: (result) => {
             lockUI.authenticating = false;
@@ -67,8 +60,7 @@ ShellRoot {
             } else {
                 lockUI.failed = true;
                 lockUI.statusText = "Access Denied";
-                // Defer the restart to prevent a recursive crash loop
-                pamActionTimer.start();
+                pam.start();
             }
         }
     }
@@ -196,7 +188,7 @@ ShellRoot {
                 Process {
                     id: batPoller
                     running: !screenRoot.isDesktop
-                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1 || echo 'AC'"]
+                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT0/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT0/status 2>/dev/null | head -n1 || echo 'AC'"]
                     stdout: StdioCollector {
                         onStreamFinished: {
                             let lines = this.text.trim().split("\n");
@@ -385,7 +377,7 @@ ShellRoot {
                             interval: 1000; running: true; repeat: true; triggeredOnStart: true
                             onTriggered: {
                                 let d = new Date();
-                                clockHours.text = Qt.formatDateTime(d, "h AP").replace(/ AM| PM/, ""); // Remove AM/PM for cleaner look
+                                clockHours.text = Qt.formatDateTime(d, "hh");
                                 clockMinutes.text = Qt.formatDateTime(d, "mm");
                                 dateText.text = Qt.formatDateTime(d, "dddd, MMMM dd");
                             }
@@ -440,7 +432,7 @@ ShellRoot {
                             Image {
                                 id: avatarImg
                                 anchors.fill: parent
-                                source: screenRoot.faceIconPath !== "/home/shreekhasnis/earth-ios-11-stock-black-background-ipad-2048x2048-771.jpg" ? screenRoot.faceIconPath : "/home/shreekhasnis/earth-ios-11-stock-black-background-ipad-2048x2048-771.jpg"
+                                source: screenRoot.faceIconPath !== "" ? screenRoot.faceIconPath : ""
                                 fillMode: Image.PreserveAspectCrop
                                 visible: false 
                                 cache: false
