@@ -1064,6 +1064,98 @@ Item {
                             }
                         }
                     }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Math.round(10 * window.sf)
+                        anchors.margins: Math.round(10 * window.sf)
+
+                        Text {
+                            text: "Today's events"
+                            font.family: "JetBrains Mono"
+                            font.pixelSize: Math.round(13 * window.sf)
+                            font.weight: Font.Black
+                            color: window.overlay0
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Math.round(144 * window.sf)
+                            radius: Math.round(16 * window.sf)
+                            color: window.surface0
+                            border.color: window.surface2
+                            border.width: 1
+
+                            Flickable {
+                                anchors.fill: parent
+                                contentWidth: parent.width
+                                contentHeight: eventColumn.height
+                                clip: true
+                                flickableDirection: Flickable.VerticalFlick
+
+                                Column {
+                                    id: eventColumn
+                                    width: parent.width
+                                    spacing: Math.round(8 * window.sf)
+                                    padding: Math.round(12 * window.sf)
+
+                                    Repeater {
+                                        model: window.appleCalendarEvents
+
+                                        Rectangle {
+                                            width: parent.width
+                                            radius: Math.round(12 * window.sf)
+                                            color: window.surface2
+                                            border.color: window.surface1
+                                            border.width: 1
+                                            height: Math.round(64 * window.sf)
+
+                                            Column {
+                                                anchors.fill: parent
+                                                anchors.margins: Math.round(10 * window.sf)
+                                                spacing: Math.round(4 * window.sf)
+
+                                                Text {
+                                                    text: modelData.summary
+                                                    font.family: "JetBrains Mono"
+                                                    font.pixelSize: Math.round(12 * window.sf)
+                                                    font.weight: Font.Black
+                                                    color: window.text
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    text: modelData.timeRange
+                                                    font.family: "JetBrains Mono"
+                                                    font.pixelSize: Math.round(11 * window.sf)
+                                                    color: window.subtext0
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    text: modelData.location
+                                                    font.family: "JetBrains Mono"
+                                                    font.pixelSize: Math.round(11 * window.sf)
+                                                    color: window.subtext0
+                                                    visible: modelData.location !== ""
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        text: window.appleCalendarEvents.length === 0 ? "No events found for today." : ""
+                                        visible: window.appleCalendarEvents.length === 0
+                                        color: window.subtext0
+                                        font.family: "JetBrains Mono"
+                                        font.pixelSize: Math.round(11 * window.sf)
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
