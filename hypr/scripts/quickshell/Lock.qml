@@ -742,7 +742,7 @@ ShellRoot {
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             Text { 
-                                text: parseInt(screenRoot.batPct) + "%"
+                                text: screenRoot.batPct + "%"
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: 14 * screenRoot.sc
                                 font.weight: Font.Black
