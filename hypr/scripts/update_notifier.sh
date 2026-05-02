@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Check interval in seconds (600s = 10 minutes)
+# Check interval in seconds (200s = 3 minutes, 20 seconds)
 INTERVAL=200
 
 # Cache file to prevent notification spam if the script is restarted
