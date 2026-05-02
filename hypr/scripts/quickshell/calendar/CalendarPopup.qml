@@ -952,6 +952,63 @@ Item {
                         }
                     }
 
+                    ColumnLayout {
+                        spacing: Math.round(10 * window.sf)
+                        Layout.fillWidth: true
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Math.round(8 * window.sf)
+
+                            TextField {
+                                id: appleCalendarUrlInput
+                                Layout.fillWidth: true
+                                placeholderText: "Paste your Apple calendar .ics URL here"
+                                text: window.appleCalendarUrl
+                                font.family: "JetBrains Mono"
+                                font.pixelSize: Math.round(12 * window.sf)
+                                onTextChanged: window.appleCalendarUrl = text
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: Math.round(78 * window.sf)
+                                Layout.preferredHeight: Math.round(36 * window.sf)
+                                radius: Math.round(12 * window.sf)
+                                color: saveMa.containsMouse ? window.surface1 : window.surface0
+                                border.color: window.surface1
+                                border.width: 1
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Save"
+                                    font.family: "JetBrains Mono"
+                                    font.pixelSize: Math.round(13 * window.sf)
+                                    font.weight: Font.Bold
+                                    color: window.text
+                                }
+                                MouseArea {
+                                    id: saveMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (window.appleCalendarUrl.trim() !== "") {
+                                            saveCalendarUrl.running = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: window.appleCalendarUrlStatus
+                            font.family: "JetBrains Mono"
+                            font.pixelSize: Math.round(11 * window.sf)
+                            color: window.appleCalendarUrlStatus === "" ? window.subtext0 : window.green
+                            horizontalAlignment: Text.AlignLeft
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Repeater {
