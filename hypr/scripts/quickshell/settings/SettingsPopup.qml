@@ -177,6 +177,7 @@ Item {
             else if (box === 3 || box === 4) approxY = root.s(240);
             else if (box === 5) approxY = root.s(400);
             else if (box === 6) approxY = root.s(520);
+            else if (box === 7) approxY = root.s(640);
             generalLoader.item.scrollToBox(approxY);
         } else if (root.currentTab === 1 && weatherLoader.item) {
             let approxY = 0;
@@ -1660,6 +1661,53 @@ Item {
                                         }
                                         MouseArea { id: wsPlusMa; anchors.fill: parent; hoverEnabled: true; onClicked: Config.workspaceCount = Math.min(10, Config.workspaceCount + 1) }
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Box 7: Updates ─────────────────────────────────────
+                    Rectangle {
+                        id: box7
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: updateRow.implicitHeight + root.s(28)
+                        radius: root.s(12)
+
+                        property bool isActive: root.highlightedBox === 7
+                        color: isActive ? root.green : root.surface0
+                        border.color: isActive ? root.green : root.surface1
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
+
+                        MouseArea { anchors.fill: parent; onClicked: root.highlightedBox = 7; z: -1 }
+
+                        RowLayout {
+                            id: updateRow
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.margins: root.s(16)
+                            spacing: root.s(14)
+
+                            Item {
+                                Layout.preferredWidth: root.s(22); Layout.alignment: Qt.AlignVCenter
+                                Text {
+                                    anchors.centerIn: parent; text: "󰚰"; font.family: "Iosevka Nerd Font"; font.pixelSize: root.s(18)
+                                    color: box7.isActive ? root.base : root.green
+                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: root.s(3)
+                                Text {
+                                    text: "Updates"; font.family: "Inter"; font.weight: Font.Bold; font.pixelSize: root.s(14)
+                                    color: box7.isActive ? root.base : root.text; Layout.fillWidth: true
+                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
+                                }
+                                Text {
+                                    text: "Check for and install updates"; font.family: "Inter"; font.pixelSize: root.s(11)
+                                    color: box7.isActive ? Qt.alpha(root.base, 0.75) : Qt.alpha(root.subtext0, 0.7); Layout.fillWidth: true
+                                    Behavior on color { ColorAnimation { duration: 220; easing.type: Easing.OutExpo } }
                                 }
                             }
                         }
