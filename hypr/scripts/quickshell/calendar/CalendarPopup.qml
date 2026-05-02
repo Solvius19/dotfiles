@@ -1018,6 +1018,30 @@ Item {
                             horizontalAlignment: Text.AlignLeft
                             wrapMode: Text.WordWrap
                         }
+
+                        Rectangle {
+                            Layout.preferredWidth: Math.round(32 * window.sf)
+                            Layout.preferredHeight: Math.round(32 * window.sf)
+                            radius: Math.round(12 * window.sf)
+                            color: window.surface0
+                            border.color: window.surface1
+                            border.width: 1
+                            visible: window.appleCalendarUrlEditorVisible && window.appleCalendarUrl !== ""
+                            opacity: visible ? 1 : 0
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Hide"
+                                font.family: "JetBrains Mono"
+                                font.pixelSize: Math.round(11 * window.sf)
+                                color: window.text
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: window.appleCalendarUrlEditorVisible = false
+                            }
+                        }
                     }
 
                     RowLayout {
