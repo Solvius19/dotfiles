@@ -978,6 +978,7 @@ Item {
                                 text: window.appleCalendarUrl
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: Math.round(12 * window.sf)
+                                focus: window.appleCalendarUrlEditorVisible
                                 onTextChanged: window.appleCalendarUrl = text
                             }
 
