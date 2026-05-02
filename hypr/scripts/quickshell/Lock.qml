@@ -103,7 +103,7 @@ ShellRoot {
 
                 property string staticWallpaperPath: "file:///tmp/lock_bg.png"
 
-                property string batPct: "100"
+                property int batPct: Math.round(UPower.displayDevice.percentage * 100)
                 property string batStatus: "AC"
                 property string currentUser: "User"
                 property string faceIconPath: ""
@@ -185,20 +185,6 @@ ShellRoot {
                 }
                 Timer { interval: 150; running: true; repeat: true; triggeredOnStart: true; onTriggered: kbPoller.running = true }
 
-                Process {
-                    id: batPoller
-                    running: !screenRoot.isDesktop
-                    command: ["bash", "-c", "cat /sys/class/power_supply/BAT0/capacity 2>/dev/null | head -n1 || echo '100'; cat /sys/class/power_supply/BAT0/status 2>/dev/null | head -n1 || echo 'AC'"]
-                    stdout: StdioCollector {
-                        onStreamFinished: {
-                            let lines = this.text.trim().split("\n");
-                            if (lines.length >= 2) {
-                                screenRoot.batPct = lines[0] || "100";
-                                screenRoot.batStatus = lines[1] || "Unknown";
-                            }
-                        }
-                    }
-                }
                 Timer { interval: 5000; running: !screenRoot.isDesktop; repeat: true; triggeredOnStart: true; onTriggered: batPoller.running = true }
 
                 Process {
@@ -742,21 +728,21 @@ ShellRoot {
                             
                             property color dynamicBatColor: {
                                 if (screenRoot.batStatus === "Charging") return root.green;
-                                let pct = parseInt(screenRoot.batPct);
+                                let pct = screenRoot.batPct;
                                 if (pct >= 60) return root.green;
                                 if (pct >= 25) return root.peach;
                                 return root.red;
                             }
 
                             Text { 
-                                text: screenRoot.batStatus === "Charging" ? "󰂄" : (parseInt(screenRoot.batPct) < 20 ? "󰂃" : "󰁹")
+                                text: screenRoot.batStatus === "Charging" ? "󰂄" : (screenRoot.batPct < 20 ? "󰂃" : "󰁹")
                                 font.family: "Iosevka Nerd Font"
                                 font.pixelSize: 20 * screenRoot.sc
                                 color: batLayoutRow.dynamicBatColor
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             Text { 
-                                text: screenRoot.batPct + "%"
+                                text: parseInt(screenRoot.batPct) + "%"
                                 font.family: "JetBrains Mono"
                                 font.pixelSize: 14 * screenRoot.sc
                                 font.weight: Font.Black
