@@ -1145,7 +1145,7 @@ Item {
                                             color: window.surface2
                                             border.color: window.surface1
                                             border.width: 1
-                                            height: Math.round(64 * window.sf)
+                                            height: Math.round(72 * window.sf)
 
                                             Column {
                                                 anchors.fill: parent
